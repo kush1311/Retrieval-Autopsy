@@ -14,6 +14,7 @@ presents as a ranking problem rather than an access-control one.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import threading
 from pathlib import Path
@@ -196,6 +197,14 @@ class QdrantVectorStore:
     The collection is **synced on construction** rather than by a separate command. A
     store silently serving a stale collection is the kind of bug that reads as a ranking
     regression, so the invariant is enforced where it cannot be forgotten.
+
+    That invariant is enforced by *naming*, not by checking — see ``_fingerprint``. The
+    collection is ``autopsy_<hash>`` over the corpus version, the embedding model and the
+    dimension, so an index built differently resolves to a different collection and the
+    previous one is never consulted. Comparing point count and dimension, which is what
+    this class used to do, cannot see a same-dimension model swap: 449 chunks at 384-d
+    embedded by two different 384-d models produce identical counts and identical
+    dimensions, and the store would keep answering from whichever it had.
     """
 
     def __init__(
@@ -211,7 +220,8 @@ class QdrantVectorStore:
             ) from exc
 
         self._index = index
-        self._collection = collection
+        self._prefix = collection
+        self._collection = f"{collection}_{self._fingerprint(index)}"
         resolved_url = url or os.environ.get("QDRANT_URL")
         resolved_path = path or os.environ.get("QDRANT_PATH")
 
@@ -250,6 +260,46 @@ class QdrantVectorStore:
 
     # -- collection management ----------------------------------------------------
 
+    @staticmethod
+    def _fingerprint(index: Index) -> str:
+        """Identify *which* index a collection holds, not merely how big it is.
+
+        Covers the three things that change the vectors while leaving the shape alone:
+        the corpus version, the embedding model, and the dimension. Chunk count is in
+        there too, but it was never the useful part — it is the field that agreed when
+        everything else had changed.
+
+        The real incident: a collection built on 26 July held 449 points at 384-d. Six days
+        and several re-ingests later the index still had 449 chunks at 384-d, so the
+        count-and-dimension check reported "up to date" and never wrote a single vector.
+        It happened to be harmless — same seed, same model, so the same vectors — but
+        nothing in the process established that, and swapping to another 384-d model would
+        have served the old embeddings indefinitely while every report claimed the new one.
+        """
+        meta = index.meta
+        material = "|".join(
+            str(meta.get(k, "")) for k in ("corpus_version", "embed_model", "dim")
+        ) + f"|{len(index.chunks)}"
+        return hashlib.sha256(material.encode("utf-8")).hexdigest()[:8]
+
+    def _drop_superseded(self) -> None:
+        """Delete sibling collections from earlier fingerprints.
+
+        Not required for correctness — a stale collection is unreachable once the name has
+        changed — but embedded mode keeps them on disk forever, and a directory quietly
+        growing a copy of the corpus per re-ingest is its own kind of surprise.
+        """
+        try:
+            names = [c.name for c in self._client.get_collections().collections]
+        except Exception:  # noqa: BLE001 - listing is a convenience, never load-bearing
+            return
+        for name in names:
+            if name.startswith(f"{self._prefix}_") and name != self._collection:
+                try:
+                    self._client.delete_collection(name)
+                except Exception:  # noqa: BLE001
+                    pass
+
     def _points(self):
         from qdrant_client.models import PointStruct
 
@@ -283,11 +333,16 @@ class QdrantVectorStore:
             )
         dim = len(first.dense)
 
+        # The collection name already encodes the corpus version, model and dimension, so
+        # finding it at the expected size means it holds *this* index — not merely one of
+        # the same shape. Count and dimension are still checked, to catch a write that was
+        # interrupted half way.
         try:
             info = self._client.get_collection(self._collection)
             same_dim = info.config.params.vectors.size == dim  # type: ignore[union-attr]
             if (info.points_count or 0) == expected and same_dim:
                 self.synced = False
+                self._drop_superseded()
                 return
         except Exception:  # noqa: BLE001 - "missing" surfaces as several exception types
             pass
@@ -318,6 +373,7 @@ class QdrantVectorStore:
         if batch:
             self._client.upsert(collection_name=self._collection, points=batch)
         self.synced = True
+        self._drop_superseded()
 
     # -- search -------------------------------------------------------------------
 

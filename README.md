@@ -10,7 +10,7 @@
   <a href="#quickstart"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white"></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/licence-MIT-blue"></a>
   <a href="#quickstart"><img alt="No API key required" src="https://img.shields.io/badge/API%20key-not%20required-brightgreen"></a>
-  <a href="#what-is-and-isnt-verified"><img alt="214 tests collected" src="https://img.shields.io/badge/tests-213%20passed%20%C2%B7%201%20skipped-brightgreen"></a>
+  <a href="#what-is-and-isnt-verified"><img alt="221 tests collected" src="https://img.shields.io/badge/tests-220%20passed%20%C2%B7%201%20skipped-brightgreen"></a>
   <a href="reports/"><img alt="Reports" src="https://img.shields.io/badge/reports-committed-informational"></a>
 </p>
 
@@ -205,7 +205,7 @@ where its question lands in the corpus, coloured by outcome.
 ```bash
 make install     # venv + dependencies
 make ingest      # generate the corpus and build the index (idempotent)
-make test        # 214 tests collected by pytest, including negative controls
+make test        # 221 tests collected by pytest, including negative controls
 make eval        # isolation + silent-failure, exits non-zero on a new failure
 make ablate      # the counterfactual sweep -> reports/ablation-simulated.md
 make calibrate   # judge calibration -> reports/judge-calibration.md
@@ -519,7 +519,7 @@ Being specific about this, because "it's built" and "it runs" are different clai
 **Verified in this environment** — Python 3.12, all offline:
 
 - `make ingest` — 449 chunks from 69 documents, and idempotent (a second run re-embeds 0)
-- `make test` — 214 tests collected by pytest, from 165 `def test_` functions (the
+- `make test` — 221 tests collected by pytest, from 172 `def test_` functions (the
   difference is parametrisation): unit, property tests on the fusion maths (hypothesis), API,
   websocket streaming, and the negative controls described above
 - `make eval` — 22 findings across two suites. **Exits 1 on this corpus**, because the
@@ -630,7 +630,7 @@ corpus/              seed (handwritten) + synthetic (generated, ground truth) + 
 api/                 FastAPI: /query, /counterfactual, /trace/{id}, WS /stream
 web/                 React inspector — four panels, demo mode  (unbuilt, see above)
 reports/             generated and committed
-tests/               214 collected by pytest, including the negative controls
+tests/               221 collected by pytest, including the negative controls
 ```
 
 ---
