@@ -50,3 +50,10 @@ corpus/generated/
 # was taken to guard against.
 *.bak
 *.orig
+
+# Source recordings. The GIFs and stills in docs/ are committed; the multi-hundred-megabyte
+# capture they were cut from is not — git stores every version of a binary forever, and one
+# re-record would double the clone size permanently.
+docs/*.mp4
+docs/*.mkv
+docs/*.mov

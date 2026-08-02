@@ -24,6 +24,24 @@
 gives you a working hybrid retriever, a 3D embedding-space inspector, and an eval suite
 that fails the build when the system starts lying. Jump straight to [Setup](#setup).
 
+<p align="center">
+  <img src="docs/space.gif" alt="A query crossing the embedding space: both retrieval legs fire, the surviving chunks travel to the model, and the answer comes back" width="900">
+</p>
+
+<p align="center">
+  <sub>
+    449 chunks of the corpus in a 3D projection of the 384-dimensional embedding space.
+    The question lands, <b>both retrieval legs fire at once</b> — solid violet for semantic,
+    dashed red for lexical — the chunks that survive the gate travel to the model, and the
+    answer returns with its citation. Recorded at <code>teach</code> pace; the timings shown
+    on screen are the real measured ones, not the replay speed.
+  </sub>
+</p>
+
+> Three axes hold **36.8%** of the variance, and the view says so on screen. Two dots that
+> look adjacent here may be far apart in the space the retriever actually searches — the
+> picture is a reading aid, not the metric.
+
 ---
 
 ## Setup
@@ -105,6 +123,34 @@ Then visit **http://localhost:8000**. Three tabs:
 
 The pace control (live / teach / slow) buffers events and replays them, so the displayed
 milliseconds stay the real measured values rather than the replay speed.
+
+<details>
+<summary><b>What the RAG and EVAL tabs look like</b> — two screenshots</summary>
+
+<br>
+
+**RAG** — one question, the whole pipeline. Nine stages with their real timings, both
+retrieval legs side by side with ranks *and* raw scores, candidates struck through when
+they were rejected, and the answer with its grounding badges.
+
+<img src="docs/rag.png" alt="The RAG tab: nine pipeline stages with timings, the lexical and semantic retrieval competition, and a grounded answer" width="900">
+
+Read the header: `1 model call · 30ms end to end · $0.000000`. Retrieval took 29 of those
+30ms. **The expensive stage is the one that can only be as good as what retrieval handed
+it** — which is the entire argument for instrumenting retrieval rather than prompt-tuning
+the generator.
+
+<br>
+
+**EVAL** — ten traps whose answers do not exist in the corpus, each plotted where its
+question lands. Green means the system was honest, amber means wrong but flagged, and red
+means wrong *and* confident. Red is the only colour that matters: a wrong answer that flags
+itself is survivable, and one that doesn't is the failure this whole project exists to
+measure.
+
+<img src="docs/eval.png" alt="The EVAL tab: trap probes plotted in the corpus and coloured by outcome, with the silent-failure map" width="900">
+
+</details>
 
 ### Run the tests and the eval
 

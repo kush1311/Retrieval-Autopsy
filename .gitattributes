@@ -15,8 +15,16 @@
 *.cmd text eol=crlf
 
 # Explicitly binary, so git never tries a line-ending or diff pass on them.
+#
+# `* text=auto` above guesses per file, and a guess is not what you want protecting a
+# screen recording: a GIF misdetected as text has every 0x0D byte rewritten on checkout and
+# arrives corrupt, with nothing in the diff to show why.
 *.png  binary
 *.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.mp4  binary
 *.ico  binary
 *.onnx binary
 *.7z   binary
