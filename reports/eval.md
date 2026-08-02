@@ -1,6 +1,6 @@
 # Eval report
 
-code src@bfd86a8c · corpus seed@cab5c9bd · embed_model offline-concept-86d01716 · provider offline
+code git@8e77e936-dirty · corpus seed@cab5c9bd · embed_model offline-concept-86d01716 · provider offline
 
 > **These numbers describe the offline simulator, not a language model.**
 > The `offline` provider is a deterministic rule-based stand-in that exists so the

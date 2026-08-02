@@ -7,10 +7,10 @@
 </p>
 
 <p align="center">
-  <a href="#quickstart"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white"></a>
+  <a href="#setup"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white"></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/licence-MIT-blue"></a>
-  <a href="#quickstart"><img alt="No API key required" src="https://img.shields.io/badge/API%20key-not%20required-brightgreen"></a>
-  <a href="#what-is-and-isnt-verified"><img alt="221 tests collected" src="https://img.shields.io/badge/tests-220%20passed%20%C2%B7%201%20skipped-brightgreen"></a>
+  <a href="#setup"><img alt="No API key required" src="https://img.shields.io/badge/API%20key-not%20required-brightgreen"></a>
+  <a href="#what-is-and-isnt-verified"><img alt="230 tests collected" src="https://img.shields.io/badge/tests-229%20passed%20%C2%B7%201%20skipped-brightgreen"></a>
   <a href="reports/"><img alt="Reports" src="https://img.shields.io/badge/reports-committed-informational"></a>
 </p>
 
@@ -22,7 +22,231 @@
 
 **Runs with no API key, no Docker, and no Node.** `pip install -e .` then `make ingest`
 gives you a working hybrid retriever, a 3D embedding-space inspector, and an eval suite
-that fails the build when the system starts lying. Jump to [Quickstart](#quickstart).
+that fails the build when the system starts lying. Jump straight to [Setup](#setup).
+
+---
+
+## Setup
+
+### What you need
+
+| | |
+|---|---|
+| **Python 3.12+** | The only hard requirement. `python --version` to check. |
+| ~400 MB disk | Dependencies, plus the generated corpus and its index. |
+| **No API key** | Nothing below reaches the network or costs money. |
+| **No Docker** | The vector store runs in-process, or as embedded Qdrant with no daemon. |
+| **No Node** | Only needed for the optional React frontend in [`web/`](web/). |
+
+### Install
+
+```bash
+git clone https://github.com/kush1311/Retrieval-Autopsy.git
+cd Retrieval-Autopsy
+
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt    # runtime deps
+pip install -r requirements-dev.txt   # + pytest, hypothesis (only if running tests)
+```
+
+`pip install -e ".[all]"` is equivalent if you prefer `pyproject.toml`.
+
+### Build the corpus and index
+
+```bash
+export PYTHONPATH=.                # Windows: $env:PYTHONPATH = "."
+python -m autopsy.cli ingest
+```
+
+```
+  generated 54 documents and 540 test cases
+  449 chunks (449 embedded, 0 reused)
+  corpus version: seed@cab5c9bd
+```
+
+`PYTHONPATH` is needed because the packages are not installed into site-packages during
+development. The task runners below set it for you.
+
+**Nothing is downloaded.** The corpus is *generated* from a fixed seed, which is why the
+repository ships no documents and why your chunk count and corpus version should match the
+numbers above exactly. Run it twice and the second run reports `0 embedded, 449 reused` —
+chunk IDs are content-addressed, so re-ingesting is a no-op. CI asserts that, because
+unstable chunk IDs would make every trace ID in every report meaningless.
+
+### Ask it something
+
+```bash
+python -m autopsy.cli query "what does KLV-4021 mean" --tenant tenant_kelvin
+```
+
+You get the whole trace, not just an answer: every stage with its timing, both retrieval
+legs with their ranks *and* raw scores, which candidates were rejected and why, what the
+gate decided, and the citation. Still no key involved.
+
+Try an ablation to see the point of the project — `--ablation no_lexical` removes the BM25
+leg, and the answer becomes wrong but *flagged*; add `--ablation no_discriminator_guard`
+and it becomes wrong and confident. That contrast is [the demo](#the-demo).
+
+### Open the inspector
+
+```bash
+python -m uvicorn api.main:app --port 8000
+```
+
+Then visit **http://localhost:8000**. Three tabs:
+
+- **RAG** — the nine stages executing, with per-stage timings and what each one skipped
+- **SPACE** — all 449 chunks in a 3D projection of the embedding space, with the query
+  animating through both retrieval legs into the model and back as an answer
+- **EVAL** — the trap suites running live, each probe plotted where its question lands in
+  the corpus and coloured by outcome
+
+The pace control (live / teach / slow) buffers events and replays them, so the displayed
+milliseconds stay the real measured values rather than the replay speed.
+
+### Run the tests and the eval
+
+```bash
+python -m pytest tests -q          # 230 tests, no key needed
+python -m autopsy.cli eval         # isolation + silent-failure suites
+```
+
+`eval` exits non-zero on a **new** failure or any change to the failure set, compared
+against `evals/baseline.offline.json`. On a clean checkout it exits 0 with 17 of 22 findings
+passing — the five that fail are the offline simulator's known confident-wrong traps, and
+they are recorded in the baseline deliberately. See the [offline
+caveat](#what-is-and-isnt-verified).
+
+### Optional: real models, still free
+
+```bash
+export GROQ_API_KEY=…              # console.groq.com/keys, free tier
+export AUTOPSY_PROVIDER=groq
+python -m autopsy.cli ingest       # rebuild: different embedder, different vectors
+python -m autopsy.cli query "what does KLV-4021 mean" --tenant tenant_kelvin
+```
+
+The re-ingest is required — the index records which embedder built it and refuses to be
+searched by another. Full options in [Configuration](#configuration).
+
+<details>
+<summary><b>Task-runner equivalents</b> — <code>make</code> on Unix, <code>run.ps1</code> on Windows</summary>
+
+```bash
+make install     # venv + dependencies
+make ingest      # generate the corpus and build the index (idempotent)
+make test        # 230 tests collected by pytest, including negative controls
+make eval        # isolation + silent-failure, exits non-zero on a new failure
+make ablate      # the counterfactual sweep -> reports/ablation-simulated.md
+make calibrate   # judge calibration -> reports/judge-calibration.md
+make api         # FastAPI + inspector on :8000
+```
+
+Windows has no `make` by default. `run.ps1` takes the same targets and, unlike the raw
+commands above, **loads `.env` for you**:
+
+```powershell
+.\run.ps1 install
+.\run.ps1 demo-query    # baseline vs ablated, side by side — start here
+.\run.ps1 api           # inspector on :8000
+.\run.ps1 all           # ingest, test, eval, ablate in sequence
+.\run.ps1 help
+```
+
+Also available: `make web` (Vite dev server, needs Node 20+ — see the
+[unverified](#what-is-and-isnt-verified) note) and `docker compose up` (keyless demo on
+:3000, replaying pre-recorded traces).
+</details>
+
+<details>
+<summary><b>Troubleshooting</b> — the three things that actually go wrong</summary>
+
+**`index/config mismatch — the index was built by a different provider`**
+
+The index stores which embedder built it, and refuses to be searched by a different one.
+Either re-run `ingest` under the current settings, or point the process back at the
+provider that built it. This is the guard working: left to fail lazily, the mismatch shows
+up as a per-chunk error mid-query and reads like a corrupt corpus.
+
+**`embedded Qdrant at ./corpus/index/qdrant is locked by another process`**
+
+Embedded Qdrant allows one process at a time. Usually the API server is still running. Stop
+it, or sidestep the lock entirely with `AUTOPSY_VECTOR_BACKEND=local` — numpy in-process,
+same results.
+
+**`provider='groq' needs GROQ_API_KEY, which is empty`**
+
+`run.ps1` fails fast rather than letting you discover it four stages into a query. Either
+paste a key into `.env` or set `AUTOPSY_PROVIDER=offline`. Note that a variable already set
+in your shell beats `.env` — standard dotenv semantics, and `run.ps1` tells you when it
+happens, because editing `.env` and watching the old value survive is otherwise
+indistinguishable from the edit not saving.
+</details>
+
+### Configuration
+
+Copy [`.env.example`](.env.example) to `.env` — it documents every variable the
+project reads. One thing worth knowing up front:
+
+| Consumer | Reads `.env`? |
+|---|---|
+| `docker compose` | **yes** — auto-loaded from the repo root |
+| Python / `make` | **no** — the process environment only; nothing calls `load_dotenv()` |
+| Vite / `npm` | **no** — reads `web/.env`, and only `VITE_`-prefixed names |
+
+The Python side does not auto-load a dotenv file on purpose. `AUTOPSY_PROVIDER`
+decides whether the pipeline spends money, and a file quietly flipping it to `live`
+because it happened to be on disk is the kind of surprise that arrives as a bill.
+
+The defaults need no configuration at all. To run against **real models for free**:
+
+```bash
+export GROQ_API_KEY=…                 # console.groq.com/keys — free tier
+AUTOPSY_PROVIDER=groq make ingest     # rebuilds the index with real local embeddings
+AUTOPSY_PROVIDER=groq make eval
+```
+
+| | `offline` | `groq` | `openai` | `live` |
+|---|---|---|---|---|
+| generation | simulator | `openai/gpt-oss-120b` | `gpt-4o-mini` | `claude-sonnet-4-6` |
+| rerank | simulator | `llama-3.1-8b-instant` | `gpt-4o-mini` | `claude-haiku-4-5` |
+| judge | rule-based | `qwen/qwen3.6-27b` | `gpt-4o-mini` | `gpt-4o-mini` |
+| embeddings | concept bags | `bge-small-en-v1.5` (local ONNX) | `text-embedding-3-small` | `text-embedding-3-small` |
+| cost | none | none | ~$0.0003/question | per token |
+
+The judge is a different model family from the generator wherever the provider serves more
+than one. That is the only real control for self-preference bias, and Groq happens to serve
+three families, so it survives the move. Under `openai` it does not — one family judging
+itself, and the calibration number should be read with that in mind.
+
+**`provider` and `embedder` are independent axes**, not one setting. Groq serves no
+embeddings endpoint at all, so a Groq run pairs a remote chat model with a local ONNX
+embedder and the trace has to be able to say so. The useful consequence:
+
+```bash
+AUTOPSY_PROVIDER=offline AUTOPSY_EMBEDDER=fastembed make ingest
+```
+
+Simulated answers, **real** 384-dimensional embeddings, no key. The 3D view then shows true
+geometry instead of a simulation, for free.
+
+**Measured Groq free-tier limits** (response headers, 2026-08-02): **8,000 tokens per
+minute** and 1,000 requests per day. At ~2k tokens of retrieved context per call that is
+about four calls a minute; a full `ablate -n 220` sweep will not fit, so use `--core -n 15`.
+
+There is also a **daily** token cap that Groq exposes in no header. When it is exhausted
+the per-minute counters still read healthy, so the failure looks like a rate limit that
+never clears. This cost me an afternoon of chasing the wrong counter; the provider now
+checks the response body text instead.
+
+Anthropic + OpenAI instead:
+
+```bash
+export ANTHROPIC_API_KEY=… OPENAI_API_KEY=…
+AUTOPSY_PROVIDER=live make reports
+```
 
 ---
 
@@ -163,158 +387,6 @@ $ ... --ablation no_lexical --ablation no_discriminator_guard
 
 Fluent, cited, marked grounded, and about a completely different error code. That is
 the 20-second recording.
-
----
-
-## Quickstart
-
-**No API key is needed for anything below.** Nothing here reaches the network or costs
-money. Requires Python 3.12+ and nothing else.
-
-```bash
-git clone https://github.com/kush1311/Retrieval-Autopsy.git
-cd Retrieval-Autopsy
-
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\Activate.ps1
-
-pip install -r requirements.txt    # or: pip install -e ".[all]"
-export PYTHONPATH=.                # Windows: $env:PYTHONPATH = "."
-
-python -m autopsy.cli ingest       # generate the corpus + build the index (~10s)
-python -m autopsy.cli query "what does KLV-4021 mean" --tenant tenant_kelvin
-```
-
-That last command prints a full trace: every stage, both retrieval legs with their ranks
-*and* raw scores, what the gate decided, and the answer. No key was involved.
-
-### Then open the inspector
-
-```bash
-python -m uvicorn api.main:app --port 8000     # then visit http://localhost:8000
-```
-
-Three tabs. **RAG** shows the nine stages executing with per-stage timings. **SPACE** puts
-all 449 chunks in a 3D projection of the embedding space and animates the query through
-both retrieval legs into the model. **EVAL** runs the trap suites and plots each probe
-where its question lands in the corpus, coloured by outcome.
-
-<details>
-<summary><b>Task-runner equivalents</b> — <code>make</code> on Unix, <code>run.ps1</code> on Windows</summary>
-
-```bash
-make install     # venv + dependencies
-make ingest      # generate the corpus and build the index (idempotent)
-make test        # 221 tests collected by pytest, including negative controls
-make eval        # isolation + silent-failure, exits non-zero on a new failure
-make ablate      # the counterfactual sweep -> reports/ablation-simulated.md
-make calibrate   # judge calibration -> reports/judge-calibration.md
-make api         # FastAPI + inspector on :8000
-```
-
-Windows has no `make` by default. `run.ps1` takes the same targets and, unlike the raw
-commands above, **loads `.env` for you**:
-
-```powershell
-.\run.ps1 install
-.\run.ps1 demo-query    # baseline vs ablated, side by side — start here
-.\run.ps1 api           # inspector on :8000
-.\run.ps1 all           # ingest, test, eval, ablate in sequence
-.\run.ps1 help
-```
-
-Also available: `make web` (Vite dev server, needs Node 20+ — see the
-[unverified](#what-is-and-isnt-verified) note) and `docker compose up` (keyless demo on
-:3000, replaying pre-recorded traces).
-</details>
-
-<details>
-<summary><b>Troubleshooting</b> — the three things that actually go wrong</summary>
-
-**`index/config mismatch — the index was built by a different provider`**
-
-The index stores which embedder built it, and refuses to be searched by a different one.
-Either re-run `ingest` under the current settings, or point the process back at the
-provider that built it. This is the guard working: left to fail lazily, the mismatch shows
-up as a per-chunk error mid-query and reads like a corrupt corpus.
-
-**`embedded Qdrant at ./corpus/index/qdrant is locked by another process`**
-
-Embedded Qdrant allows one process at a time. Usually the API server is still running. Stop
-it, or sidestep the lock entirely with `AUTOPSY_VECTOR_BACKEND=local` — numpy in-process,
-same results.
-
-**`provider='groq' needs GROQ_API_KEY, which is empty`**
-
-`run.ps1` fails fast rather than letting you discover it four stages into a query. Either
-paste a key into `.env` or set `AUTOPSY_PROVIDER=offline`. Note that a variable already set
-in your shell beats `.env` — standard dotenv semantics, and `run.ps1` tells you when it
-happens, because editing `.env` and watching the old value survive is otherwise
-indistinguishable from the edit not saving.
-</details>
-
-### Configuration
-
-Copy [`.env.example`](.env.example) to `.env` — it documents every variable the
-project reads. One thing worth knowing up front:
-
-| Consumer | Reads `.env`? |
-|---|---|
-| `docker compose` | **yes** — auto-loaded from the repo root |
-| Python / `make` | **no** — the process environment only; nothing calls `load_dotenv()` |
-| Vite / `npm` | **no** — reads `web/.env`, and only `VITE_`-prefixed names |
-
-The Python side does not auto-load a dotenv file on purpose. `AUTOPSY_PROVIDER`
-decides whether the pipeline spends money, and a file quietly flipping it to `live`
-because it happened to be on disk is the kind of surprise that arrives as a bill.
-
-The defaults need no configuration at all. To run against **real models for free**:
-
-```bash
-export GROQ_API_KEY=…                 # console.groq.com/keys — free tier
-AUTOPSY_PROVIDER=groq make ingest     # rebuilds the index with real local embeddings
-AUTOPSY_PROVIDER=groq make eval
-```
-
-| | `offline` | `groq` | `openai` | `live` |
-|---|---|---|---|---|
-| generation | simulator | `openai/gpt-oss-120b` | `gpt-4o-mini` | `claude-sonnet-4-6` |
-| rerank | simulator | `llama-3.1-8b-instant` | `gpt-4o-mini` | `claude-haiku-4-5` |
-| judge | rule-based | `qwen/qwen3.6-27b` | `gpt-4o-mini` | `gpt-4o-mini` |
-| embeddings | concept bags | `bge-small-en-v1.5` (local ONNX) | `text-embedding-3-small` | `text-embedding-3-small` |
-| cost | none | none | ~$0.0003/question | per token |
-
-The judge is a different model family from the generator wherever the provider serves more
-than one. That is the only real control for self-preference bias, and Groq happens to serve
-three families, so it survives the move. Under `openai` it does not — one family judging
-itself, and the calibration number should be read with that in mind.
-
-**`provider` and `embedder` are independent axes**, not one setting. Groq serves no
-embeddings endpoint at all, so a Groq run pairs a remote chat model with a local ONNX
-embedder and the trace has to be able to say so. The useful consequence:
-
-```bash
-AUTOPSY_PROVIDER=offline AUTOPSY_EMBEDDER=fastembed make ingest
-```
-
-Simulated answers, **real** 384-dimensional embeddings, no key. The 3D view then shows true
-geometry instead of a simulation, for free.
-
-**Measured Groq free-tier limits** (response headers, 2026-08-02): **8,000 tokens per
-minute** and 1,000 requests per day. At ~2k tokens of retrieved context per call that is
-about four calls a minute; a full `ablate -n 220` sweep will not fit, so use `--core -n 15`.
-
-There is also a **daily** token cap that Groq exposes in no header. When it is exhausted
-the per-minute counters still read healthy, so the failure looks like a rate limit that
-never clears. This cost me an afternoon of chasing the wrong counter; the provider now
-checks the response body text instead.
-
-Anthropic + OpenAI instead:
-
-```bash
-export ANTHROPIC_API_KEY=… OPENAI_API_KEY=…
-AUTOPSY_PROVIDER=live make reports
-```
 
 ---
 
@@ -519,7 +591,7 @@ Being specific about this, because "it's built" and "it runs" are different clai
 **Verified in this environment** — Python 3.12, all offline:
 
 - `make ingest` — 449 chunks from 69 documents, and idempotent (a second run re-embeds 0)
-- `make test` — 221 tests collected by pytest, from 172 `def test_` functions (the
+- `make test` — 230 tests collected by pytest, from 181 `def test_` functions (the
   difference is parametrisation): unit, property tests on the fusion maths (hypothesis), API,
   websocket streaming, and the negative controls described above
 - `make eval` — 22 findings across two suites. **Exits 1 on this corpus**, because the
@@ -630,7 +702,7 @@ corpus/              seed (handwritten) + synthetic (generated, ground truth) + 
 api/                 FastAPI: /query, /counterfactual, /trace/{id}, WS /stream
 web/                 React inspector — four panels, demo mode  (unbuilt, see above)
 reports/             generated and committed
-tests/               221 collected by pytest, including the negative controls
+tests/               230 collected by pytest, including the negative controls
 ```
 
 ---
