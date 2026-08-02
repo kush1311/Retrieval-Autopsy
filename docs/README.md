@@ -1,42 +1,46 @@
 # docs/
 
-Screenshots and recordings embedded in the top-level [README](../README.md).
+Recordings and long-form documentation for [Retrieval Autopsy](../README.md).
+
+| file | tab | what it shows |
+|---|---|---|
+| `space.gif` | SPACE | a query crossing the embedding space — both retrieval legs firing, the surviving chunks reaching the model, the answer returning |
+| `rag.gif` | RAG | nine pipeline stages executing with real timings, the lexical/semantic competition, candidates struck through as they lose |
+| `eval.gif` | EVAL | ten trap probes plotted where their questions land, coloured by outcome as the suite runs |
+| `FINDINGS.md` | — | what was measured: the ablation table, the context-width curve, the suites, judge calibration |
+| `ENGINEERING.md` | — | design decisions, what is and isn't verified, deliberate deviations from spec |
+
+All three recordings come from one capture of the live inspector at `teach` pace, running
+`provider=groq` against the real 449-chunk index. Nothing is mocked or staged. Browser
+chrome and the taskbar are cropped out — the crop is `crop=1280:576:0:104`.
 
 Committed rather than linked to an external host: an image host that expires takes the
 README's only visual with it, and a repository that cannot show what it built is back to
 asking the reader to take its word for it.
 
-| file | tab | what it shows |
-|---|---|---|
-| `space.gif` | SPACE | a query crossing the embedding space, both retrieval legs firing, the surviving chunks reaching the model, the answer returning |
-| `rag.png` | RAG | nine pipeline stages with real timings, the lexical/semantic competition, a grounded answer |
-| `eval.png` | EVAL | ten trap probes plotted where their questions land, coloured by outcome |
-
-All three were cut from one screen recording of the live inspector at `teach` pace, running
-`provider=groq` against the real 449-chunk index. Nothing is mocked or staged.
-
 ## Regenerating them
 
-The source recording is **not committed** — `docs/*.mp4` is gitignored. Git keeps every
-version of a binary forever, so a single re-record would permanently double the clone size
-for a file nobody reads.
+Source recordings are **not committed** — `docs/*.mp4` is gitignored. Git keeps every
+version of a binary forever, so one re-record would permanently enlarge every clone.
 
-Record the inspector, drop the video in here, and cut it with ffmpeg:
+Record the inspector, drop the video in here, and cut it:
 
 ```bash
 pip install imageio-ffmpeg     # bundles a static ffmpeg; no system install
 FF=$(python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())")
 
-# the GIF: palette-based, which is what keeps a 17s capture under a megabyte
-"$FF" -ss <start> -t <seconds> -i Recording.mp4 \
-  -vf "fps=12,scale=900:-1:flags=lanczos,split[a][b];\
-[a]palettegen=max_colors=128:stats_mode=diff[p];\
-[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle" \
-  -loop 0 space.gif
+# Find the segment boundaries first — a contact sheet of the whole capture, one frame
+# per second, is faster than scrubbing:
+"$FF" -i Recording.mp4 -vf "fps=1,scale=252:-1,tile=10x8" -frames:v 1 sheet.png
 
-# a still
-"$FF" -ss <seconds> -i Recording.mp4 -frames:v 1 -vf "scale=1440:-1:flags=lanczos" rag.png
+# Then cut. Palette-based encoding is what keeps 20s under two megabytes; a naive
+# `-f gif` of the same clip is roughly 5x larger.
+"$FF" -ss <start> -to <end> -i Recording.mp4 \
+  -vf "crop=1280:576:0:104,fps=11,scale=860:-1:flags=lanczos,split[a][b];\
+[a]palettegen=max_colors=144:stats_mode=diff[p];\
+[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" \
+  -loop 0 space.gif
 ```
 
-Keep the GIF under ~2 MB and each still under ~500 KB. A README that takes ten seconds to
-load is a README nobody scrolls.
+Keep each GIF under ~3 MB. A README that takes ten seconds to load is a README nobody
+scrolls, and the weight is permanent once committed.

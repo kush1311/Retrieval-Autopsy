@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/space.gif" alt="A query crossing the embedding space: both retrieval legs fire, the surviving chunks travel to the model, and the answer comes back" width="900">
+  <img src="docs/space.gif" alt="A query crossing the embedding space: both retrieval legs fire, the surviving chunks travel to the model, and the answer comes back" width="860">
 </p>
 
 <p align="center">
@@ -131,24 +131,28 @@ Three tabs — **RAG** (the nine stages executing), **SPACE** (the 3D view above
 control buffers and replays events, so displayed milliseconds stay the real measured values.
 
 <details>
-<summary><b>Screenshots of the RAG and EVAL tabs</b></summary>
+<summary><b>Watch the RAG and EVAL tabs run</b> — two recordings</summary>
 
 <br>
 
-**RAG** — nine stages with real timings, both retrieval legs side by side, rejected
-candidates struck through, and the answer with its grounding badges.
+**RAG** — one question, the whole pipeline. Stages light up as they execute, both retrieval
+legs compete side by side with ranks *and* raw scores, losing candidates are struck through
+as they are rejected, and the answer arrives with its grounding badges.
 
-<img src="docs/rag.png" alt="The RAG tab: pipeline stages with timings, the retrieval competition, and a grounded answer" width="900">
+<img src="docs/rag.gif" alt="The RAG tab: pipeline stages executing with real timings, the lexical and semantic retrieval competition, and a grounded answer" width="860">
 
-Read the header: `1 model call · 30ms end to end · $0.000000`, of which retrieval was 29ms.
-The expensive stage can only be as good as what retrieval handed it.
+Read the header when it settles: `1 model call · 7ms end to end · $0.000000`. Retrieval is
+most of that. **The expensive stage can only ever be as good as what retrieval handed it** —
+which is the argument for instrumenting retrieval rather than tuning the prompt.
 
 <br>
 
-**EVAL** — ten traps whose answers do not exist in the corpus, plotted where their questions
-land. Green means honest, amber means wrong but flagged, red means wrong *and confident*.
+**EVAL** — ten traps whose answers do not exist in the corpus, each probe plotted where its
+question lands. Green means the system was honest, amber means wrong but flagged, red means
+wrong *and confident*. Red is the only colour that matters: a wrong answer that flags itself
+is survivable, and one that doesn't is the failure this project exists to measure.
 
-<img src="docs/eval.png" alt="The EVAL tab: trap probes plotted in the corpus and coloured by outcome" width="900">
+<img src="docs/eval.gif" alt="The EVAL tab: trap probes plotted across the corpus and coloured by outcome, with the silent-failure map filling in as the suite runs" width="860">
 
 </details>
 
