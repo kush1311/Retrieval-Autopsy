@@ -1,0 +1,833 @@
+{
+  "schema_version": "1.0.0",
+  "trace_id": "5F9QDB4D8QXYNNNXBMX1419GFY",
+  "created_at": "2026-07-26T08:43:25Z",
+  "query": "what does KLV-4021 mean",
+  "rewritten_query": null,
+  "tenant_id": "tenant_kelvin",
+  "session_id": null,
+  "ablations": [],
+  "config_hash": "sha256:4f078518bb0bf672dbcf8f759e394f321ed4870c52eac050a9c86192169c1dd3",
+  "config": {
+    "lexical": {
+      "top_k": 20,
+      "b": 0.75,
+      "k1": 1.2
+    },
+    "semantic": {
+      "model_id": "text-embedding-3-small",
+      "top_k": 20
+    },
+    "fusion": {
+      "rrf_k": 60
+    },
+    "gate": {
+      "threshold": 0.42,
+      "reads": "dense_top1"
+    },
+    "rerank": {
+      "model_id": "claude-haiku-4-5-20251001",
+      "always": false,
+      "gray_zone_score": 0.6,
+      "gray_zone_margin": 0.1,
+      "top_n": 10
+    },
+    "expansion": {
+      "neighbours": 1
+    },
+    "generation": {
+      "model_id": "claude-sonnet-4-6",
+      "temperature": 0.0,
+      "max_context_chunks": 12,
+      "max_tokens": 700,
+      "discriminator_guard": true
+    },
+    "runtime": {
+      "provider": "offline",
+      "seed": 1729,
+      "cache_enabled": true
+    },
+    "rewrite_enabled": true
+  },
+  "versions": {
+    "corpus": "seed@cab5c9bd",
+    "embed_model": "sim:text-embedding-3-small",
+    "gen_model": "sim:claude-sonnet-4-6",
+    "rerank_model": "sim:claude-haiku-4-5-20251001",
+    "provider": "offline",
+    "code": "src@ce13172c"
+  },
+  "candidates": [
+    {
+      "chunk_id": "c_ceb804cc91ff278d",
+      "doc_id": "reference/ingestion.md",
+      "heading_path": [
+        "Kelvin ingestion",
+        "Errors",
+        "KLV-4021 — batch operation aborted"
+      ],
+      "text": "KLV-4021 means the pellshale budget was exhausted while accepting incoming batches. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 4,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 1,
+      "lexical_score": 4.765593,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": 2,
+      "fused_score": 0.01639344,
+      "rerank_score": 100.0,
+      "final_rank": 1,
+      "in_context": true,
+      "inclusion_reason": "rerank_promoted",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_01452cc3e13e573e",
+      "doc_id": "reference/ingestion.md",
+      "heading_path": [
+        "Kelvin ingestion",
+        "Configuration",
+        "`klv_ingestion_max_concurrency`"
+      ],
+      "text": "The default value of `klv_ingestion_max_concurrency` is 47497. It bounds accepting incoming batches on a single node, expressed in concurrency. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 3,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": 2,
+      "in_context": true,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_3ce029cb1a1b925c",
+      "doc_id": "reference/ingestion.md",
+      "heading_path": [
+        "Kelvin ingestion",
+        "Errors",
+        "KLV-4022 — batch operation aborted"
+      ],
+      "text": "KLV-4022 means the welkreef budget was exhausted while accepting incoming batches. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 5,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 13,
+      "semantic_score": 0.908696,
+      "fused_rank": 14,
+      "fused_score": 0.01369863,
+      "rerank_score": null,
+      "final_rank": 3,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_16733c10050d41ee",
+      "doc_id": "reference/compaction.md",
+      "heading_path": [
+        "Kelvin compaction",
+        "Errors",
+        "KLV-4003 — segment operation aborted"
+      ],
+      "text": "KLV-4003 means the murrvale budget was exhausted while merging segments. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 6,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 1,
+      "semantic_score": 0.910526,
+      "fused_rank": 1,
+      "fused_score": 0.01639344,
+      "rerank_score": 60.0,
+      "final_rank": 4,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_ce3bc30ff4529b70",
+      "doc_id": "reference/compaction.md",
+      "heading_path": [
+        "Kelvin compaction",
+        "Errors",
+        "KLV-4002 — segment operation aborted"
+      ],
+      "text": "KLV-4002 means the murrmarsh budget was exhausted while merging segments. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 5,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 7,
+      "semantic_score": 0.910526,
+      "fused_rank": 8,
+      "fused_score": 0.01492537,
+      "rerank_score": 60.0,
+      "final_rank": 5,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_1e86078ef0b2aae5",
+      "doc_id": "reference/eviction.md",
+      "heading_path": [
+        "Kelvin eviction",
+        "Errors",
+        "KLV-4033 — entry operation aborted"
+      ],
+      "text": "KLV-4033 means the sporevale budget was exhausted while releasing memory. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 6,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 2,
+      "semantic_score": 0.910526,
+      "fused_rank": 3,
+      "fused_score": 0.01612903,
+      "rerank_score": 60.0,
+      "final_rank": 6,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_71be155cce59e30c",
+      "doc_id": "reference/eviction.md",
+      "heading_path": [
+        "Kelvin eviction",
+        "Errors",
+        "KLV-4032 — entry operation aborted"
+      ],
+      "text": "KLV-4032 means the yarrowshale budget was exhausted while releasing memory. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 5,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 4,
+      "semantic_score": 0.910526,
+      "fused_rank": 5,
+      "fused_score": 0.015625,
+      "rerank_score": 60.0,
+      "final_rank": 7,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_4a1bd9f15c11abe5",
+      "doc_id": "reference/prefetching.md",
+      "heading_path": [
+        "Kelvin prefetching",
+        "Errors",
+        "KLV-4121 — page operation aborted"
+      ],
+      "text": "KLV-4121 means the thornridge budget was exhausted while reading ahead of demand. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 4,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 3,
+      "semantic_score": 0.910526,
+      "fused_rank": 4,
+      "fused_score": 0.01587302,
+      "rerank_score": 60.0,
+      "final_rank": 8,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_bd6814d81d81d348",
+      "doc_id": "reference/prefetching.md",
+      "heading_path": [
+        "Kelvin prefetching",
+        "Configuration",
+        "`klv_prefetching_max_concurrency`"
+      ],
+      "text": "The default value of `klv_prefetching_max_concurrency` is 66783. It bounds reading ahead of demand on a single node, expressed in concurrency. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 3,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": 9,
+      "in_context": true,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_c2462b6846a671cd",
+      "doc_id": "reference/prefetching.md",
+      "heading_path": [
+        "Kelvin prefetching",
+        "Errors",
+        "KLV-4122 — page operation aborted"
+      ],
+      "text": "KLV-4122 means the yarrowgate budget was exhausted while reading ahead of demand. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 5,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 5,
+      "semantic_score": 0.910526,
+      "fused_rank": 6,
+      "fused_score": 0.01538462,
+      "rerank_score": 60.0,
+      "final_rank": 10,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_d72bcedf90c0a4d3",
+      "doc_id": "reference/eviction.md",
+      "heading_path": [
+        "Kelvin eviction",
+        "Errors",
+        "KLV-4031 — entry operation aborted"
+      ],
+      "text": "KLV-4031 means the fencoil budget was exhausted while releasing memory. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 4,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 8,
+      "semantic_score": 0.910526,
+      "fused_rank": 9,
+      "fused_score": 0.01470588,
+      "rerank_score": 60.0,
+      "final_rank": 11,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_c9ff750abc9363ff",
+      "doc_id": "reference/prefetching.md",
+      "heading_path": [
+        "Kelvin prefetching",
+        "Errors",
+        "KLV-4123 — page operation aborted"
+      ],
+      "text": "KLV-4123 means the wickgate budget was exhausted while reading ahead of demand. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 6,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 6,
+      "semantic_score": 0.910526,
+      "fused_rank": 7,
+      "fused_score": 0.01515152,
+      "rerank_score": 60.0,
+      "final_rank": 12,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_eab21d95fd1a72ec",
+      "doc_id": "reference/compaction.md",
+      "heading_path": [
+        "Kelvin compaction",
+        "Errors",
+        "KLV-4001 — segment operation aborted"
+      ],
+      "text": "KLV-4001 means the vetchcrest budget was exhausted while merging segments. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 4,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 9,
+      "semantic_score": 0.910526,
+      "fused_rank": 10,
+      "fused_score": 0.01449275,
+      "rerank_score": 60.0,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_01c9cee8696ae573",
+      "doc_id": "reference/federation.md",
+      "heading_path": [
+        "Kelvin federation",
+        "Errors",
+        "KLV-4143 — query operation aborted"
+      ],
+      "text": "KLV-4143 means the fenshale budget was exhausted while forwarding queries to peers. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 6,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 10,
+      "semantic_score": 0.908696,
+      "fused_rank": 11,
+      "fused_score": 0.01428571,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_12a82760013f2170",
+      "doc_id": "reference/checkpointing.md",
+      "heading_path": [
+        "Kelvin checkpointing",
+        "Errors",
+        "KLV-4013 — checkpoint operation aborted"
+      ],
+      "text": "KLV-4013 means the sporecrest budget was exhausted while flushing state to disk. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 6,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 11,
+      "semantic_score": 0.908696,
+      "fused_rank": 12,
+      "fused_score": 0.01408451,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_2758d30099aeb7db",
+      "doc_id": "reference/snapshotting.md",
+      "heading_path": [
+        "Kelvin snapshotting",
+        "Errors",
+        "KLV-4093 — snapshot operation aborted"
+      ],
+      "text": "KLV-4093 means the sporespire budget was exhausted while capturing point-in-time images. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 6,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 12,
+      "semantic_score": 0.908696,
+      "fused_rank": 13,
+      "fused_score": 0.01388889,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_3d63171f8a65e849",
+      "doc_id": "reference/indexing.md",
+      "heading_path": [
+        "Kelvin indexing",
+        "Errors",
+        "KLV-4082 — index operation aborted"
+      ],
+      "text": "KLV-4082 means the roanspire budget was exhausted while building lookup structures. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 5,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 14,
+      "semantic_score": 0.908696,
+      "fused_rank": 15,
+      "fused_score": 0.01351351,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_5bff1f2f7c9cd5b9",
+      "doc_id": "reference/scrubbing.md",
+      "heading_path": [
+        "Kelvin scrubbing",
+        "Errors",
+        "KLV-4113 — block operation aborted"
+      ],
+      "text": "KLV-4113 means the tarncoil budget was exhausted while verifying stored checksums. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 6,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 15,
+      "semantic_score": 0.908696,
+      "fused_rank": 16,
+      "fused_score": 0.01333333,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_5fc1a0bd46dc8015",
+      "doc_id": "reference/reconciliation.md",
+      "heading_path": [
+        "Kelvin reconciliation",
+        "Errors",
+        "KLV-4101 — divergence operation aborted"
+      ],
+      "text": "KLV-4101 means the murrbank budget was exhausted while repairing divergent replicas. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 4,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 16,
+      "semantic_score": 0.908696,
+      "fused_rank": 17,
+      "fused_score": 0.01315789,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_702277f2bbf83948",
+      "doc_id": "reference/reconciliation.md",
+      "heading_path": [
+        "Kelvin reconciliation",
+        "Errors",
+        "KLV-4102 — divergence operation aborted"
+      ],
+      "text": "KLV-4102 means the wickreef budget was exhausted while repairing divergent replicas. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 5,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 17,
+      "semantic_score": 0.908696,
+      "fused_rank": 18,
+      "fused_score": 0.01298701,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_7127af0647c189c0",
+      "doc_id": "reference/snapshotting.md",
+      "heading_path": [
+        "Kelvin snapshotting",
+        "Errors",
+        "KLV-4091 — snapshot operation aborted"
+      ],
+      "text": "KLV-4091 means the fenhollow budget was exhausted while capturing point-in-time images. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 4,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 18,
+      "semantic_score": 0.908696,
+      "fused_rank": 19,
+      "fused_score": 0.01282051,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_76ebd8b3d0096b77",
+      "doc_id": "reference/federation.md",
+      "heading_path": [
+        "Kelvin federation",
+        "Errors",
+        "KLV-4142 — query operation aborted"
+      ],
+      "text": "KLV-4142 means the quillridge budget was exhausted while forwarding queries to peers. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 5,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 19,
+      "semantic_score": 0.908696,
+      "fused_rank": 20,
+      "fused_score": 0.01265823,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_7bc17e9fec41c526",
+      "doc_id": "reference/hydration.md",
+      "heading_path": [
+        "Kelvin hydration",
+        "Errors",
+        "KLV-4052 — cache operation aborted"
+      ],
+      "text": "KLV-4052 means the roanvale budget was exhausted while warming caches after a restart. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 5,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 20,
+      "semantic_score": 0.908696,
+      "fused_rank": 21,
+      "fused_score": 0.0125,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_02a676d5a7546656",
+      "doc_id": "reference/eviction.md",
+      "heading_path": [
+        "Kelvin eviction",
+        "Configuration",
+        "`klv_eviction_max_concurrency`"
+      ],
+      "text": "The default value of `klv_eviction_max_concurrency` is 93619. It bounds releasing memory on a single node, expressed in concurrency. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 3,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_66c1d2cd5889549c",
+      "doc_id": "reference/compaction.md",
+      "heading_path": [
+        "Kelvin compaction",
+        "Configuration",
+        "`klv_compaction_max_concurrency`"
+      ],
+      "text": "The default value of `klv_compaction_max_concurrency` is 54844. It bounds merging segments on a single node, expressed in concurrency. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 3,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_ef7f0b7a343890bd",
+      "doc_id": "reference/checkpointing.md",
+      "heading_path": [
+        "Kelvin checkpointing",
+        "Errors",
+        "KLV-4012 — checkpoint operation aborted"
+      ],
+      "text": "KLV-4012 means the welkbank budget was exhausted while flushing state to disk. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 5,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    }
+  ],
+  "stages": [
+    {
+      "name": "rewrite",
+      "ms": 0.116,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": true,
+      "skip_reason": "no conversation history, query is already standalone",
+      "error": null,
+      "detail": {}
+    },
+    {
+      "name": "embed",
+      "ms": 0.18,
+      "tokens_in": 5,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": "miss",
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "model": "offline-concept-86d01716",
+        "kind": "concept"
+      }
+    },
+    {
+      "name": "retrieve_dense",
+      "ms": 1.377,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "top_k": 20,
+        "returned": 20,
+        "scope": "tenant_kelvin + tenant_global"
+      }
+    },
+    {
+      "name": "retrieve_sparse",
+      "ms": 17.606,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "top_k": 20,
+        "returned": 1,
+        "k1": 1.2,
+        "b": 0.75
+      }
+    },
+    {
+      "name": "fuse",
+      "ms": 0.275,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "mode": "rrf",
+        "rrf_k": 60,
+        "candidates": 21
+      }
+    },
+    {
+      "name": "gate",
+      "ms": 0.085,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "reads": "dense_top1",
+        "value": 0.910526,
+        "threshold": 0.42,
+        "margin": 0.0,
+        "passed": true
+      }
+    },
+    {
+      "name": "rerank",
+      "ms": 2.512,
+      "tokens_in": 1020,
+      "tokens_out": 40,
+      "cost_usd": 0.0,
+      "cache": "miss",
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "scored": 10,
+        "shortlist": 10,
+        "promoted": [
+          "c_ceb804cc91ff278d"
+        ],
+        "trigger": "gray_zone"
+      }
+    },
+    {
+      "name": "expand",
+      "ms": 0.161,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "neighbours": 1,
+        "added": 5
+      }
+    },
+    {
+      "name": "generate",
+      "ms": 5.077,
+      "tokens_in": 1248,
+      "tokens_out": 21,
+      "cost_usd": 0.0,
+      "cache": "miss",
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "sources": 12,
+        "status": "grounded",
+        "unsupported_spans": 0,
+        "temperature": 0.0
+      }
+    }
+  ],
+  "answer": {
+    "text": "KLV-4021 means the pellshale budget was exhausted while accepting incoming batches. [1]",
+    "status": "grounded",
+    "spans": [
+      {
+        "start": 0,
+        "end": 87,
+        "chunk_ids": [
+          "c_ceb804cc91ff278d"
+        ],
+        "supported": true
+      }
+    ],
+    "citations": [
+      "c_ceb804cc91ff278d"
+    ],
+    "refusal_reason": null,
+    "hedged": false
+  },
+  "totals": {
+    "ms": 27.389,
+    "cost_usd": 0.0,
+    "llm_calls": 2,
+    "tokens_in": 2273,
+    "tokens_out": 61
+  }
+}

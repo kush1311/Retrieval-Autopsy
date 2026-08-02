@@ -1,0 +1,1047 @@
+{
+  "schema_version": "1.0.0",
+  "trace_id": "1QEHQ7MXYYXX9CPJG3S28QD7H4",
+  "created_at": "2026-07-26T08:43:25Z",
+  "query": "which Vela distance metric is the fastest",
+  "rewritten_query": null,
+  "tenant_id": "tenant_vela",
+  "session_id": null,
+  "ablations": [
+    "no_rerank"
+  ],
+  "config_hash": "sha256:fc820d391c241b713b28ab972bcf65207d2acfa437225576d99bc72123b62a78",
+  "config": {
+    "lexical": {
+      "top_k": 20,
+      "b": 0.75,
+      "k1": 1.2
+    },
+    "semantic": {
+      "model_id": "text-embedding-3-small",
+      "top_k": 20
+    },
+    "fusion": {
+      "rrf_k": 60
+    },
+    "gate": {
+      "threshold": 0.42,
+      "reads": "dense_top1"
+    },
+    "rerank": null,
+    "expansion": {
+      "neighbours": 1
+    },
+    "generation": {
+      "model_id": "claude-sonnet-4-6",
+      "temperature": 0.0,
+      "max_context_chunks": 12,
+      "max_tokens": 700,
+      "discriminator_guard": true
+    },
+    "runtime": {
+      "provider": "offline",
+      "seed": 1729,
+      "cache_enabled": true
+    },
+    "rewrite_enabled": true
+  },
+  "versions": {
+    "corpus": "seed@cab5c9bd",
+    "embed_model": "sim:text-embedding-3-small",
+    "gen_model": "sim:claude-sonnet-4-6",
+    "rerank_model": "none",
+    "provider": "offline",
+    "code": "src@ce13172c"
+  },
+  "candidates": [
+    {
+      "chunk_id": "c_64a49cb24013bc36",
+      "doc_id": "collections.md",
+      "heading_path": [
+        "Vela collections",
+        "Creating a collection"
+      ],
+      "text": "```yaml\nname: documents\nvectors:\n  size: 1536\n  distance: cosine        # cosine | dot | euclid\nsegment_max_vectors: 200000\nreplication_factor: 2\nwrite_consistency_factor: 1\n```\n\n`size` and `distance` are fixed at creation. Changing either requires a new collection\nand a full re-upsert; there is no in-place migration, because every stored vector and\nevery graph edge was built under the original metric.",
+      "ordinal": 0,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 1,
+      "lexical_score": 9.951099,
+      "semantic_rank": 1,
+      "semantic_score": 0.504273,
+      "fused_rank": 1,
+      "fused_score": 0.03278689,
+      "rerank_score": null,
+      "final_rank": 1,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_2cf2d0f625326c36",
+      "doc_id": "collections.md",
+      "heading_path": [
+        "Vela collections",
+        "Distance metrics"
+      ],
+      "text": "- `cosine` — Vela normalises vectors on upsert and uses the dot product internally.\n  Normalisation is applied to what you send, so upserting an already-normalised vector\n  is harmless.\n- `dot` — no normalisation. Vector magnitude affects the score, which is what you want\n  for models trained with an unnormalised objective and a mistake otherwise.\n- `euclid` — squared euclidean distance. Lower is better, which inverts the ordering\n  relative to the other two; client code that assumes higher-is-better silently ranks\n  backwards.",
+      "ordinal": 1,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 3,
+      "lexical_score": 4.543498,
+      "semantic_rank": 2,
+      "semantic_score": 0.347783,
+      "fused_rank": 2,
+      "fused_score": 0.03200205,
+      "rerank_score": null,
+      "final_rank": 2,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_05ef865005cc9e76",
+      "doc_id": "collections.md",
+      "heading_path": [
+        "Vela collections",
+        "Segments"
+      ],
+      "text": "A collection is stored as multiple segments. Search runs against every segment and\nmerges the results, so a collection with many small segments spends most of its query\nbudget on merge overhead. `segment_max_vectors` bounds segment size; Vela merges small\nsegments in the background.\n\nThe optimizer will not merge a segment that is currently being searched, so under\nsustained query load a collection can accumulate more segments than the configuration\nsuggests. This is normal and resolves during quieter periods.",
+      "ordinal": 2,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 9,
+      "semantic_score": 0.100026,
+      "fused_rank": 17,
+      "fused_score": 0.01449275,
+      "rerank_score": null,
+      "final_rank": 3,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_d2764442d1be376c",
+      "doc_id": "glossary.md",
+      "heading_path": [
+        "Shared glossary",
+        "Search"
+      ],
+      "text": "**Recall** — the fraction of true results a search actually returns. Distinct from\nprecision, and the metric that approximate indexes trade away for speed.\n\n**Rescoring** — re-ranking an oversampled candidate set with a more expensive and more\naccurate scoring function before returning the final result.",
+      "ordinal": 4,
+      "tenant_id": "tenant_global",
+      "lexical_rank": 2,
+      "lexical_score": 4.706676,
+      "semantic_rank": 3,
+      "semantic_score": 0.256975,
+      "fused_rank": 3,
+      "fused_score": 0.03200205,
+      "rerank_score": null,
+      "final_rank": 4,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_8cc4285f4e0e9353",
+      "doc_id": "glossary.md",
+      "heading_path": [
+        "Shared glossary",
+        "Storage"
+      ],
+      "text": "**Segment** — a unit of on-disk storage that can be written, merged, and searched\nindependently.\n\n**Compaction** — merging segments to reduce their number and reclaim space.\n\n**Bloat** — space occupied by data that is no longer live but has not been reclaimed.",
+      "ordinal": 3,
+      "tenant_id": "tenant_global",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": 5,
+      "in_context": true,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_b55385e91e4fac62",
+      "doc_id": "glossary.md",
+      "heading_path": [
+        "Shared glossary",
+        "Support"
+      ],
+      "text": "**Workaround** — a documented way to avoid an issue's impact without a code change.\nThe presence of a workaround affects severity, not priority.",
+      "ordinal": 5,
+      "tenant_id": "tenant_global",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": 6,
+      "in_context": true,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_5dc1f799deaebcb7",
+      "doc_id": "errors.md",
+      "heading_path": [
+        "Vela error reference"
+      ],
+      "text": "Vela uses the `VEC-` prefix. `VEC-40xx` covers index build and search faults,\n`VEC-41xx` covers collection lifecycle, and `VEC-42xx` covers payload and filtering.",
+      "ordinal": 0,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 4,
+      "lexical_score": 0.842078,
+      "semantic_rank": 4,
+      "semantic_score": 0.105572,
+      "fused_rank": 4,
+      "fused_score": 0.03125,
+      "rerank_score": null,
+      "final_rank": 7,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_186637749f194020",
+      "doc_id": "errors.md",
+      "heading_path": [
+        "Vela error reference",
+        "Index faults",
+        "VEC-4021 — index build exceeded memory budget"
+      ],
+      "text": "Building the graph index for a segment required more memory than\n`index_build_memory_bytes` allows. The segment stays searchable through brute-force\nscan, which is correct but orders of magnitude slower, and Vela retries the build when\nmemory frees up.\n\nBuild memory scales with `hnsw_m` and the segment's vector count. Halving `hnsw_m`\nroughly halves build memory and costs some recall at high filter selectivity. Reducing\n`segment_max_vectors` is usually the better lever, because it bounds the peak without\nchanging search quality.\n\n```\nVEC-4021 index build exceeded memory budget: needed 3.1GiB, budget 2.0GiB\n```",
+      "ordinal": 1,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": 8,
+      "in_context": true,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_df21dcc546944144",
+      "doc_id": "errors.md",
+      "heading_path": [
+        "Vela error reference",
+        "Collection faults",
+        "VEC-4101 — collection already exists"
+      ],
+      "text": "A create call named an existing collection. Vela does not implicitly replace\ncollections, because an accidental replace destroys an index that may have taken hours\nto build. Use an explicit recreate call if that is what you meant.",
+      "ordinal": 4,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 5,
+      "lexical_score": 0.782921,
+      "semantic_rank": 5,
+      "semantic_score": 0.103617,
+      "fused_rank": 5,
+      "fused_score": 0.03076923,
+      "rerank_score": null,
+      "final_rank": 9,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_d46746a6e8e5cdc2",
+      "doc_id": "errors.md",
+      "heading_path": [
+        "Vela error reference",
+        "Index faults",
+        "VEC-4023 — quantized index missing original vectors"
+      ],
+      "text": "A search requested rescoring, but the collection was created with\n`quantization.keep_original: false`, so the full-precision vectors needed for the\nrescore pass are not on disk. The search returns quantized-only results.\n\nThis setting cannot be changed in place. Recovering full-precision rescoring requires\nrecreating the collection and re-upserting.",
+      "ordinal": 3,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": 10,
+      "in_context": true,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_031d08e94e3b1095",
+      "doc_id": "indexing.md",
+      "heading_path": [
+        "Vela indexing",
+        "Small segments"
+      ],
+      "text": "Below `full_scan_threshold_vectors` Vela does not build a graph at all; it scans the\nsegment exhaustively. Exhaustive search on ten thousand vectors is fast and exact, and\na graph over that few points has poor recall anyway. This is why recall measured on a\nsmall development collection does not predict production behaviour.",
+      "ordinal": 1,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 6,
+      "lexical_score": 0.715866,
+      "semantic_rank": 6,
+      "semantic_score": 0.101689,
+      "fused_rank": 6,
+      "fused_score": 0.03030303,
+      "rerank_score": null,
+      "final_rank": 11,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_6ab2fea8a8982314",
+      "doc_id": "indexing.md",
+      "heading_path": [
+        "Vela indexing",
+        "Graph index parameters"
+      ],
+      "text": "Vela builds a hierarchical navigable small-world graph per segment.\n\n```yaml\nhnsw_m: 16                  # edges per node\nhnsw_ef_construct: 128      # candidate list size during build\nhnsw_ef_search: 64          # candidate list size at query time\nfull_scan_threshold_vectors: 10000\n```\n\n`hnsw_m` sets graph connectivity. Higher values improve recall and increase both\nmemory and build time; the memory cost is roughly linear in `hnsw_m`. Values between\n16 and 32 cover most workloads, and above 64 the returns are very small.\n\n`hnsw_ef_construct` controls build-time search breadth. It affects graph quality\npermanently — you cannot recover a poorly built graph by raising `hnsw_ef_search`\nlater.\n\n`hnsw_ef_search` is a per-query knob and can be raised at request time. It trades\nlatency for recall linearly and is the right dial to move first when recall is\ndisappointing.",
+      "ordinal": 0,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": 12,
+      "in_context": true,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_055eee678a8c985f",
+      "doc_id": "reference/compaction.md",
+      "heading_path": [
+        "Vela compaction",
+        "Configuration",
+        "`vla_compaction_interval_seconds`"
+      ],
+      "text": "The default value of `vla_compaction_interval_seconds` is 5869. It bounds merging segments on a single node, expressed in seconds. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 7,
+      "lexical_score": 0.646639,
+      "semantic_rank": 8,
+      "semantic_score": 0.100026,
+      "fused_rank": 7,
+      "fused_score": 0.02963126,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_0850e9d2c6c0e6b3",
+      "doc_id": "reference/compaction.md",
+      "heading_path": [
+        "Vela compaction",
+        "Configuration",
+        "`vla_compaction_max_concurrency`"
+      ],
+      "text": "The default value of `vla_compaction_max_concurrency` is 46534. It bounds merging segments on a single node, expressed in concurrency. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 3,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 8,
+      "lexical_score": 0.646639,
+      "semantic_rank": 10,
+      "semantic_score": 0.100026,
+      "fused_rank": 8,
+      "fused_score": 0.0289916,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_0986868d8e0b117b",
+      "doc_id": "reference/eviction.md",
+      "heading_path": [
+        "Vela eviction",
+        "Configuration",
+        "`vla_eviction_max_concurrency`"
+      ],
+      "text": "The default value of `vla_eviction_max_concurrency` is 20662. It bounds releasing memory on a single node, expressed in concurrency. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 3,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 9,
+      "lexical_score": 0.646639,
+      "semantic_rank": 11,
+      "semantic_score": 0.100026,
+      "fused_rank": 9,
+      "fused_score": 0.02857726,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_1e9c701053cc5d82",
+      "doc_id": "reference/ingestion.md",
+      "heading_path": [
+        "Vela ingestion",
+        "Configuration",
+        "`vla_ingestion_interval_seconds`"
+      ],
+      "text": "The default value of `vla_ingestion_interval_seconds` is 33601. It bounds accepting incoming batches on a single node, expressed in seconds. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 14,
+      "lexical_score": 0.640445,
+      "semantic_rank": 13,
+      "semantic_score": 0.100026,
+      "fused_rank": 10,
+      "fused_score": 0.02721214,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_83d1794ac1056712",
+      "doc_id": "reference/eviction.md",
+      "heading_path": [
+        "Vela eviction",
+        "Configuration",
+        "`vla_eviction_interval_seconds`"
+      ],
+      "text": "The default value of `vla_eviction_interval_seconds` is 60392. It bounds releasing memory on a single node, expressed in seconds. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 10,
+      "lexical_score": 0.646639,
+      "semantic_rank": 18,
+      "semantic_score": 0.100026,
+      "fused_rank": 11,
+      "fused_score": 0.02710623,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_b475f7bce35cf145",
+      "doc_id": "reference/compaction.md",
+      "heading_path": [
+        "Vela compaction",
+        "Configuration",
+        "`vla_compaction_threshold_bytes`"
+      ],
+      "text": "The default value of `vla_compaction_threshold_bytes` is 20791. It bounds merging segments on a single node, expressed in bytes. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 2,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 11,
+      "lexical_score": 0.646639,
+      "semantic_rank": 19,
+      "semantic_score": 0.100026,
+      "fused_rank": 12,
+      "fused_score": 0.02674273,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_332b693f0d601cf2",
+      "doc_id": "reference/ingestion.md",
+      "heading_path": [
+        "Vela ingestion",
+        "Configuration",
+        "`vla_ingestion_threshold_bytes`"
+      ],
+      "text": "The default value of `vla_ingestion_threshold_bytes` is 50660. It bounds accepting incoming batches on a single node, expressed in bytes. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 2,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 16,
+      "lexical_score": 0.640445,
+      "semantic_rank": 14,
+      "semantic_score": 0.100026,
+      "fused_rank": 13,
+      "fused_score": 0.02667141,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_c08bbdae967b7c68",
+      "doc_id": "reference/eviction.md",
+      "heading_path": [
+        "Vela eviction",
+        "Configuration",
+        "`vla_eviction_threshold_bytes`"
+      ],
+      "text": "The default value of `vla_eviction_threshold_bytes` is 95568. It bounds releasing memory on a single node, expressed in bytes. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 2,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 12,
+      "lexical_score": 0.646639,
+      "semantic_rank": 20,
+      "semantic_score": 0.100026,
+      "fused_rank": 14,
+      "fused_score": 0.02638889,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_4368899924b472ef",
+      "doc_id": "reference/prefetching.md",
+      "heading_path": [
+        "Vela prefetching",
+        "Configuration",
+        "`vla_prefetching_threshold_bytes`"
+      ],
+      "text": "The default value of `vla_prefetching_threshold_bytes` is 38225. It bounds reading ahead of demand on a single node, expressed in bytes. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 2,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 18,
+      "lexical_score": 0.640445,
+      "semantic_rank": 15,
+      "semantic_score": 0.100026,
+      "fused_rank": 15,
+      "fused_score": 0.02615385,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_045af317a6ddaa8a",
+      "doc_id": "reference/hydration.md",
+      "heading_path": [
+        "Vela hydration",
+        "Configuration",
+        "`vla_hydration_threshold_bytes`"
+      ],
+      "text": "The default value of `vla_hydration_threshold_bytes` is 42673. It bounds warming caches after a restart on a single node, expressed in bytes. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 2,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 7,
+      "semantic_score": 0.100026,
+      "fused_rank": 16,
+      "fused_score": 0.01492537,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_127cab1e4976e8bc",
+      "doc_id": "reference/hydration.md",
+      "heading_path": [
+        "Vela hydration",
+        "Configuration",
+        "`vla_hydration_interval_seconds`"
+      ],
+      "text": "The default value of `vla_hydration_interval_seconds` is 47477. It bounds warming caches after a restart on a single node, expressed in seconds. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 12,
+      "semantic_score": 0.100026,
+      "fused_rank": 18,
+      "fused_score": 0.01388889,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_054817ddc9e730d5",
+      "doc_id": "reference/federation.md",
+      "heading_path": [
+        "Vela federation",
+        "Configuration",
+        "`vla_federation_threshold_bytes`"
+      ],
+      "text": "The default value of `vla_federation_threshold_bytes` is 44518. It bounds forwarding queries to peers on a single node, expressed in bytes. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 2,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 13,
+      "lexical_score": 0.640445,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": 19,
+      "fused_score": 0.01369863,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_273704d42ae83526",
+      "doc_id": "reference/checkpointing.md",
+      "heading_path": [
+        "Vela checkpointing",
+        "Configuration",
+        "`vla_checkpointing_interval_seconds`"
+      ],
+      "text": "The default value of `vla_checkpointing_interval_seconds` is 87465. It bounds flushing state to disk on a single node, expressed in seconds. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 15,
+      "lexical_score": 0.640445,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": 20,
+      "fused_score": 0.01333333,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_62828bba81a19b4c",
+      "doc_id": "reference/prefetching.md",
+      "heading_path": [
+        "Vela prefetching",
+        "Configuration",
+        "`vla_prefetching_max_concurrency`"
+      ],
+      "text": "The default value of `vla_prefetching_max_concurrency` is 79464. It bounds reading ahead of demand on a single node, expressed in concurrency. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 3,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 16,
+      "semantic_score": 0.100026,
+      "fused_rank": 21,
+      "fused_score": 0.01315789,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_34ac402f65a508d8",
+      "doc_id": "reference/scrubbing.md",
+      "heading_path": [
+        "Vela scrubbing",
+        "Configuration",
+        "`vla_scrubbing_interval_seconds`"
+      ],
+      "text": "The default value of `vla_scrubbing_interval_seconds` is 50857. It bounds verifying stored checksums on a single node, expressed in seconds. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 17,
+      "lexical_score": 0.640445,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": 22,
+      "fused_score": 0.01298701,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_71f241f19d2a69c7",
+      "doc_id": "reference/hydration.md",
+      "heading_path": [
+        "Vela hydration",
+        "Configuration",
+        "`vla_hydration_max_concurrency`"
+      ],
+      "text": "The default value of `vla_hydration_max_concurrency` is 41936. It bounds warming caches after a restart on a single node, expressed in concurrency. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 3,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 17,
+      "semantic_score": 0.100026,
+      "fused_rank": 23,
+      "fused_score": 0.01298701,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_46ea3032da35b1b2",
+      "doc_id": "reference/throttling.md",
+      "heading_path": [
+        "Vela throttling",
+        "Configuration",
+        "`vla_throttling_max_concurrency`"
+      ],
+      "text": "The default value of `vla_throttling_max_concurrency` is 98626. It bounds pacing client requests on a single node, expressed in concurrency. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 3,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 19,
+      "lexical_score": 0.640445,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": 24,
+      "fused_score": 0.01265823,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_51e790610047cb08",
+      "doc_id": "reference/snapshotting.md",
+      "heading_path": [
+        "Vela snapshotting",
+        "Configuration",
+        "`vla_snapshotting_interval_seconds`"
+      ],
+      "text": "The default value of `vla_snapshotting_interval_seconds` is 32586. It bounds capturing point-in-time images on a single node, expressed in seconds. Vela reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": 20,
+      "lexical_score": 0.640445,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": 25,
+      "fused_score": 0.0125,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_1898b81609ac401f",
+      "doc_id": "reference/eviction.md",
+      "heading_path": [
+        "Vela eviction",
+        "Errors",
+        "VLA-4031 — entry operation aborted"
+      ],
+      "text": "VLA-4031 means the welkshale budget was exhausted while releasing memory. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 4,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_4818baf478529ffa",
+      "doc_id": "reference/ingestion.md",
+      "heading_path": [
+        "Vela ingestion",
+        "Overview"
+      ],
+      "text": "Ingestion is the Vela subsystem responsible for accepting incoming batches. It runs continuously in the background and is governed by a parameter that determines how much work it may do per cycle. Each cycle selects the oldest eligible batch and processes it to completion before considering the next, so a single oversized batch can delay everything queued behind it.\n\nIngestion never blocks foreground traffic. If it cannot keep up, the backlog grows and read amplification rises, but writes continue to be accepted at full rate.",
+      "ordinal": 0,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_6a60c10a53948338",
+      "doc_id": "reference/compaction.md",
+      "heading_path": [
+        "Vela compaction",
+        "Overview"
+      ],
+      "text": "Compaction is the Vela subsystem responsible for merging segments. It runs continuously in the background and is governed by a threshold that determines how much work it may do per cycle. Each cycle selects the oldest eligible segment and processes it to completion before considering the next, so a single oversized segment can delay everything queued behind it.\n\nCompaction never blocks foreground traffic. If it cannot keep up, the backlog grows and read amplification rises, but writes continue to be accepted at full rate.",
+      "ordinal": 0,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_85ba7a4e4b1f5c6d",
+      "doc_id": "reference/eviction.md",
+      "heading_path": [
+        "Vela eviction",
+        "Overview"
+      ],
+      "text": "Eviction is the Vela subsystem responsible for releasing memory. It runs continuously in the background and is governed by a remove that determines how much work it may do per cycle. Each cycle selects the oldest eligible entry and processes it to completion before considering the next, so a single oversized entry can delay everything queued behind it.\n\nEviction never blocks foreground traffic. If it cannot keep up, the backlog grows and read amplification rises, but writes continue to be accepted at full rate.",
+      "ordinal": 0,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_9c989ad798205ae0",
+      "doc_id": "indexing.md",
+      "heading_path": [
+        "Vela indexing",
+        "Filtering and recall"
+      ],
+      "text": "A filtered search restricts the graph traversal to points matching the filter. When\nthe filter is highly selective, the reachable subgraph can become disconnected and\nrecall collapses — the traversal simply cannot reach candidates that are only\nconnected through excluded points.\n\nVela mitigates this by falling back to exhaustive scan when the estimated match count\ndrops below `full_scan_threshold_vectors`. The estimate comes from payload index\ncardinality, so a filter on an unindexed payload field has no estimate, gets no\nfallback, and is exactly where filtered recall problems show up.\n\nIndex the payload fields you filter on:\n\n```yaml\npayload_index:\n  - field: tenant_id\n    type: keyword\n  - field: published_at\n    type: datetime\n```",
+      "ordinal": 2,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_ce61e78c7662d242",
+      "doc_id": "reference/compaction.md",
+      "heading_path": [
+        "Vela compaction",
+        "Errors",
+        "VLA-4001 — segment operation aborted"
+      ],
+      "text": "VLA-4001 means the quillbank budget was exhausted while merging segments. The operation is abandoned and retried at the next scheduled attempt; nothing is lost, but the backlog grows until a retry succeeds.\n\nThe usual cause is a node that has been running with the budget set below steady-state demand, so every attempt starts already behind. Raising the budget resolves it; restarting the node does not.",
+      "ordinal": 4,
+      "tenant_id": "tenant_vela",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    }
+  ],
+  "stages": [
+    {
+      "name": "rewrite",
+      "ms": 0.022,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": true,
+      "skip_reason": "no conversation history, query is already standalone",
+      "error": null,
+      "detail": {}
+    },
+    {
+      "name": "embed",
+      "ms": 0.025,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": "hit",
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "model": "offline-concept-86d01716",
+        "kind": "concept"
+      }
+    },
+    {
+      "name": "retrieve_dense",
+      "ms": 1.113,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "top_k": 20,
+        "returned": 20,
+        "scope": "tenant_vela + tenant_global"
+      }
+    },
+    {
+      "name": "retrieve_sparse",
+      "ms": 0.756,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "top_k": 20,
+        "returned": 20,
+        "k1": 1.2,
+        "b": 0.75
+      }
+    },
+    {
+      "name": "fuse",
+      "ms": 0.259,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "mode": "rrf",
+        "rrf_k": 60,
+        "candidates": 25
+      }
+    },
+    {
+      "name": "gate",
+      "ms": 0.046,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "reads": "dense_top1",
+        "value": 0.504273,
+        "threshold": 0.42,
+        "margin": 0.15649,
+        "passed": true
+      }
+    },
+    {
+      "name": "rerank",
+      "ms": 0.021,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": true,
+      "skip_reason": "reranker ablated by config",
+      "error": null,
+      "detail": {}
+    },
+    {
+      "name": "expand",
+      "ms": 0.198,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "neighbours": 1,
+        "added": 11
+      }
+    },
+    {
+      "name": "generate",
+      "ms": 4.092,
+      "tokens_in": 1186,
+      "tokens_out": 91,
+      "cost_usd": 0.0,
+      "cache": "miss",
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "sources": 12,
+        "status": "grounded",
+        "unsupported_spans": 0,
+        "temperature": 0.0
+      }
+    }
+  ],
+  "answer": {
+    "text": "Changing either requires a new collection and a full re-upsert; there is no in-place migration, because every stored vector and every graph edge was built under the original metric. [1] Vector magnitude affects the score, which is what you want   for models trained with an unnormalised objective and a mistake otherwise. - `euclid` — squared euclidean distance. [2]",
+    "status": "grounded",
+    "spans": [
+      {
+        "start": 0,
+        "end": 185,
+        "chunk_ids": [
+          "c_64a49cb24013bc36"
+        ],
+        "supported": true
+      },
+      {
+        "start": 186,
+        "end": 366,
+        "chunk_ids": [
+          "c_2cf2d0f625326c36"
+        ],
+        "supported": true
+      }
+    ],
+    "citations": [
+      "c_64a49cb24013bc36",
+      "c_2cf2d0f625326c36"
+    ],
+    "refusal_reason": null,
+    "hedged": false
+  },
+  "totals": {
+    "ms": 6.532,
+    "cost_usd": 0.0,
+    "llm_calls": 1,
+    "tokens_in": 1186,
+    "tokens_out": 91
+  }
+}

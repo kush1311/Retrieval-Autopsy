@@ -1,0 +1,32 @@
+# Development and test dependencies. Install on top of requirements.txt:
+#
+#   pip install -r requirements.txt -r requirements-dev.txt
+
+-r requirements.txt
+
+pytest>=8.0                 # tested 9.1.1
+hypothesis>=6.100           # tested 6.161.5 — property tests on the fusion maths
+
+# A real ES2020 engine, so the inspector's inline JavaScript is parse-checked in CI.
+# There is no Node in this project's toolchain; without this, a syntax error in a
+# 700-line inline <script> ships silently and takes the entire page down with it.
+# `esprima` was tried first and rejected: it predates ES2020 and chokes on `??`.
+# tests/test_inspector_js.py skips cleanly if this is missing.
+quickjs>=1.19               # tested 1.19.4
+
+# NOT here on purpose: `openai` and `anthropic`.
+#
+# Nothing in the test suite needs them — `make test` pins itself to the offline simulator —
+# and including them made `pip install -r requirements-dev.txt` fail outright on Windows.
+# The `anthropic` wheel ships a 95-character filename, which overruns the 260-character
+# MAX_PATH limit inside any reasonably nested checkout:
+#
+#   OSError: [Errno 2] No such file or directory: '...\\anthropic\\types\\beta\\
+#   beta_managed_agents_self_hosted_resources_unsupported_deployment_paused_reason_error.py'
+#
+# Install them only when you need to reproduce the real-model numbers:
+#
+#   pip install -e ".[llm]"
+#
+# and on Windows enable long paths first, or clone somewhere short like C:\src\.
+#   https://pip.pypa.io/warnings/enable-long-paths

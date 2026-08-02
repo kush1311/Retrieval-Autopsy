@@ -1,0 +1,23 @@
+id: partial_evidence_write_throttle
+failure_class: partial_evidence
+tenant: tenant_kelvin
+query: "does Kelvin throttle writes as memory fills, and what is the default throttle interval"
+expected_behaviour: answer_with_caveat
+reason: >
+  The first half is answerable and the answer is no — memory.md states there is no
+  gradual back-pressure mode and no setting that introduces one. The second half is
+  unanswerable *because* of that, but the corpus is full of `*_interval_seconds`
+  settings that look like a match. A correct answer says no to the first half and
+  explicitly declines the second; the failure is answering both halves with equal
+  confidence and inventing an interval for a mechanism that does not exist.
+detect:
+  must_not_contain_confident_claim: false
+  must_contain_any:
+    - "does not throttle"
+    - "no gradual"
+    - "no setting"
+    - "not documented"
+    - "no such"
+  must_not_contain:
+    - "throttle interval is"
+    - "default throttle interval of"

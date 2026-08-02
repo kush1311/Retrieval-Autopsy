@@ -1,0 +1,98 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Pinned for every job, so CI can never silently drift onto a different provider — and so
+# it can never spend money. There is no key in this environment; `offline` needs none.
+#
+#   provider offline  the deterministic rule-based simulator
+#   embedder concept  concept bags, not a real embedding model. Deliberate: `fastembed`
+#                     would download ~130MB of ONNX weights on every run and make the
+#                     numbers depend on a model release rather than on this code.
+#   backend  local    numpy in-process. `qdrant` embedded mode takes an exclusive file
+#                     lock, and two steps running at once would deadlock on it.
+#
+# The eval baseline below was recorded under exactly this triple. Change any of the three
+# and the run will report every genuine difference as a regression.
+env:
+  PYTHONPATH: .
+  AUTOPSY_PROVIDER: offline
+  AUTOPSY_EMBEDDER: concept
+  AUTOPSY_VECTOR_BACKEND: local
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+
+      - name: build the index
+        run: python -m autopsy.cli ingest
+
+      # Ingest is content-addressed and idempotent, so a second run must be a no-op.
+      # If it is not, chunk IDs are unstable and every trace ID in every report is
+      # meaningless.
+      - name: ingest is idempotent
+        run: |
+          python -m autopsy.cli ingest | tee second.txt
+          grep -q "0 embedded" second.txt || (echo "re-ingest re-embedded chunks" && exit 1)
+
+      - name: tests
+        run: python -m pytest tests -q
+
+      # Exits non-zero on a NEW failure or any change to the failure set. Known failures
+      # live in evals/baseline.offline.json — baselines are per-provider on purpose, since
+      # a shared one would report every provider switch as a regression and train everyone
+      # to run --update-baseline reflexively.
+      #
+      # This currently records 5 confident-wrong traps. That is the simulator being bad at
+      # hedging, not the pipeline being broken; a real model handles 9 of 10. See the
+      # offline caveat in README.
+      - name: eval
+        run: python -m autopsy.cli eval
+
+      - name: the generated schema is in sync with the models
+        run: |
+          python -m autopsy.cli schema
+          git diff --exit-code web/src/lib/ || \
+            (echo "regenerate with 'make schema' and commit" && exit 1)
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports
+          path: reports/
+
+  # The React frontend has never been built, typechecked or rendered — there is no Node in
+  # the environment this project was written in. It is published as unverified source, and
+  # README says so.
+  #
+  # `continue-on-error` rather than deleting the job: the point of running it is to find
+  # out *whether* it builds, and a red X on a repository whose README already discloses the
+  # gap would be less honest, not more. Read the job's own result, not the run's.
+  web:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package.json
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          VITE_DEMO_ONLY: "1"

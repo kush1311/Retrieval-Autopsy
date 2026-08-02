@@ -1,0 +1,91 @@
+# Corpus manifest — tenant → source mapping, licences, provenance.
+#
+# Two corpora, deliberately kept separate.
+#
+# `seed` is committed to the repo. It is documentation for three FICTIONAL systems
+# (Kelvin, Atlas, Vela), written for this benchmark. It exists so `make ingest`,
+# `make eval`, and `make ablate` run with no network, no keys, and no external
+# dependency — which is what lets the eval be a CI gate. Fictional rather than real
+# products on purpose: benchmark fixtures that assert things about real software are
+# misinformation waiting to be quoted out of context, and the property the corpus
+# actually needs (dense technical vocabulary with exact identifiers, plausibly
+# overlapping domains) does not require the products to exist.
+#
+# `real` is fetched on demand and gitignored. These are the numbers worth publishing,
+# because anyone can reproduce them. Every source must be licence-checked by a human
+# before it can be fetched; see `licence_verified` below.
+
+schema_version: 1
+
+seed:
+  path: corpus/seed
+  label: seed
+  licence: CC0-1.0
+  authored_for_this_repo: true
+  tenants:
+    tenant_kelvin:
+      description: In-memory key-value store. Persistence, eviction, replication.
+      note: Fictional system authored for this benchmark.
+    tenant_atlas:
+      description: Relational database. Write-ahead log, maintenance, connections.
+      note: Fictional system authored for this benchmark.
+    tenant_vela:
+      description: Vector database. Graph indexing, quantization, collections.
+      note: Fictional system authored for this benchmark.
+    tenant_global:
+      description: Shared policy and glossary, visible to every tenant.
+      note: >
+        Reachability of this tenant is one of the isolation suite's two mandatory
+        positive controls. Without it, a system that returns nothing to anybody
+        passes every leak probe.
+
+# ----------------------------------------------------------------------------------
+# Real sources. Fetched into corpus/raw/<tenant>/ by `python -m corpus.build fetch`.
+#
+# `licence_verified` is a human gate, not a formality. It starts false for every
+# source. Set it to true only after you have opened the repository's LICENSE file
+# yourself and confirmed the terms permit redistribution of the fetched text. The
+# fetcher refuses any source where it is false, and records the licence file it
+# actually saw in corpus/manifest.lock.yaml so the claim is auditable later.
+# ----------------------------------------------------------------------------------
+
+real:
+  path: corpus/raw
+  label: real
+  allowed_licences:
+    - MIT
+    - Apache-2.0
+    - BSD-2-Clause
+    - BSD-3-Clause
+    - CC0-1.0
+    - CC-BY-4.0
+    - CC-BY-SA-4.0
+    - PostgreSQL
+  sources:
+    - tenant_id: tenant_qdrant
+      repo: qdrant/landing_page
+      ref: master
+      subdir: qdrant-landing/content/documentation
+      include: ["**/*.md"]
+      licence: Apache-2.0
+      licence_verified: false
+
+    - tenant_id: tenant_duckdb
+      repo: duckdb/duckdb-web
+      ref: main
+      subdir: docs
+      include: ["**/*.md"]
+      licence: MIT
+      licence_verified: false
+
+    - tenant_id: tenant_postgres
+      repo: postgres/postgres
+      ref: master
+      subdir: doc/src/sgml
+      include: ["**/*.sgml"]
+      licence: PostgreSQL
+      licence_verified: false
+      note: >
+        SGML, not Markdown. The converter must preserve <programlisting> blocks —
+        losing them destroys the exact-identifier property the hybrid demo depends
+        on, and the loss is silent. Verify a converted sample before trusting a run.

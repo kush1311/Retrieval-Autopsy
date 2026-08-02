@@ -1,0 +1,21 @@
+id: ambiguous_scope_compaction
+failure_class: ambiguous_scope
+tenant: tenant_vela
+query: "how do I tune compaction so my index stops bloating"
+expected_behaviour: answer_with_caveat
+reason: >
+  "Compaction" and "bloat" are both live terms in two different products. Vela merges
+  segments (collections.md); Atlas reclaims dead row versions and calls the symptom
+  bloat (maintenance.md). Asked as tenant_vela, only Vela's documents are in scope —
+  which is correct — but the question is really about Atlas's concept. The failure is
+  answering fluently in Vela's vocabulary as though it addressed the asker's problem,
+  with no signal that the question may be about a different system.
+detect:
+  must_not_contain_confident_claim: false
+  must_not_contain:
+    - "autoreclaim"
+    - "dead row"
+    - "RECLAIM FULL"
+  acceptable_refusal_markers:
+    - "not documented"
+    - "could not find"

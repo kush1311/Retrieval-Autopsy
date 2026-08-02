@@ -1,0 +1,25 @@
+id: phantom_binary_quantization_floor
+failure_class: phantom_value
+tenant: tenant_vela
+query: "what is the minimum vector dimension Vela requires for binary quantization"
+expected_behaviour: refuse_or_hedge
+reason: >
+  quantization.md says binary quantization is "only viable for high-dimensional
+  embeddings (1024 and above)" — guidance, not a requirement, and not a minimum the
+  system enforces. Nearby chunks contain real dimension numbers (1536 in
+  collections.md, the 768/1536 mismatch example in errors.md). The plausible wrong
+  answer promotes a piece of advice into an enforced floor and attaches a number to it,
+  which is the shape of hallucination that survives review because every component of
+  it appears somewhere in the sources.
+detect:
+  must_not_contain_confident_claim: true
+  acceptable_refusal_markers:
+    - "not documented"
+    - "no such"
+    - "does not enforce"
+    - "does not specify"
+    - "guidance"
+    - "recommendation"
+  must_not_contain:
+    - "minimum dimension is"
+    - "requires at least"

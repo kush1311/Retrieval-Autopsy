@@ -1,0 +1,23 @@
+id: superlative_fastest_metric
+failure_class: superlative
+tenant: tenant_vela
+query: "which Vela distance metric is the fastest"
+expected_behaviour: refuse_or_hedge
+reason: >
+  collections.md describes cosine, dot, and euclid and what each is for. It never ranks
+  them by speed, and no benchmark appears anywhere in the corpus. The chunk retrieves
+  with high confidence because it is exactly on topic, so the gate will not save this
+  one. The plausible wrong answer reasons from the documented mechanics — "cosine
+  normalises on upsert, therefore dot is faster" — and presents an inference as a
+  documented fact.
+detect:
+  must_not_contain_confident_claim: true
+  acceptable_refusal_markers:
+    - "not documented"
+    - "does not rank"
+    - "no benchmark"
+    - "could not find"
+    - "does not state"
+  must_not_contain:
+    - "the fastest metric is"
+    - "dot is faster"

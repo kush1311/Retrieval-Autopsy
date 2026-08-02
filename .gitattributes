@@ -1,0 +1,45 @@
+# ── Line endings ─────────────────────────────────────────────────────────────────
+#
+# This project was developed on Windows, and the tree arrived at 113 LF files and 91
+# CRLF files. Without normalisation, every Linux contributor sees 91 files as wholly
+# rewritten and every diff is unreadable.
+#
+# `text=auto eol=lf` stores LF in the repository and checks out LF everywhere. Git
+# handles the conversion; nothing in the toolchain cares.
+* text=auto eol=lf
+
+# PowerShell keeps CRLF on checkout. It runs fine with LF, but Windows tooling and
+# editors expect CRLF for .ps1, and this is the file a Windows user opens first.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Explicitly binary, so git never tries a line-ending or diff pass on them.
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.onnx binary
+*.7z   binary
+*.zip  binary
+
+# ── Generated artifacts ──────────────────────────────────────────────────────────
+#
+# These are *outputs*, produced by `make schema`, `make ingest`, `make ablate` and the
+# eval runner. Marking them tells GitHub two useful truths:
+#
+#   - collapse them in pull-request diffs, because reviewing a regenerated 400KB JSONL
+#     line by line is noise
+#   - leave them out of the language statistics
+#
+# The second matters more than it looks. By bytes this repository is 54% JSON/JSONL and
+# 29% Python, so GitHub's language bar would announce it as a JSON project. It is a
+# Python project that happens to publish its measurements, and the header should say so.
+evals/testsets/generated.jsonl   linguist-generated=true
+evals/golden/derived.jsonl       linguist-generated=true
+reports/*.jsonl                  linguist-generated=true
+web/src/demo/traces/*.json       linguist-generated=true
+web/src/lib/trace.schema.json    linguist-generated=true
+
+# Reports are prose about measurements and should stay visible in diffs — a changed
+# number there is exactly what a reviewer wants to see. Only the raw JSONL is collapsed.
+reports/*.md                     -linguist-generated

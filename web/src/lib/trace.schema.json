@@ -1,0 +1,1584 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RetrievalAutopsyTrace",
+  "schema_version": "1.0.0",
+  "definitions": {
+    "Trace": {
+      "$defs": {
+        "Answer": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "title": "Text",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/definitions/AnswerStatus"
+            },
+            "spans": {
+              "items": {
+                "$ref": "#/definitions/Span"
+              },
+              "title": "Spans",
+              "type": "array"
+            },
+            "citations": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Citations",
+              "type": "array"
+            },
+            "refusal_reason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Refusal Reason"
+            },
+            "hedged": {
+              "default": false,
+              "title": "Hedged",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "text",
+            "status"
+          ],
+          "title": "Answer",
+          "type": "object"
+        },
+        "AnswerStatus": {
+          "enum": [
+            "grounded",
+            "refused",
+            "ungrounded"
+          ],
+          "title": "AnswerStatus",
+          "type": "string"
+        },
+        "CacheState": {
+          "enum": [
+            "hit",
+            "miss"
+          ],
+          "title": "CacheState",
+          "type": "string"
+        },
+        "Candidate": {
+          "additionalProperties": false,
+          "description": "One retrieval candidate, with its standing in every leg it appeared in.\n\nPer-leg rank *and* raw score are both recorded. Rank is what panel A positions by;\nthe raw score is rendered as text beside it. They are not interchangeable \u2014 see\nthe note on score scales in the rendering constraints.",
+          "properties": {
+            "chunk_id": {
+              "title": "Chunk Id",
+              "type": "string"
+            },
+            "doc_id": {
+              "title": "Doc Id",
+              "type": "string"
+            },
+            "heading_path": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Heading Path",
+              "type": "array"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            },
+            "ordinal": {
+              "title": "Ordinal",
+              "type": "integer"
+            },
+            "tenant_id": {
+              "title": "Tenant Id",
+              "type": "string"
+            },
+            "lexical_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Lexical Rank"
+            },
+            "lexical_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Lexical Score"
+            },
+            "semantic_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Semantic Rank"
+            },
+            "semantic_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Semantic Score"
+            },
+            "fused_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fused Rank"
+            },
+            "fused_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fused Score"
+            },
+            "rerank_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Rerank Score"
+            },
+            "final_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Final Rank"
+            },
+            "in_context": {
+              "default": false,
+              "title": "In Context",
+              "type": "boolean"
+            },
+            "inclusion_reason": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/InclusionReason"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "rejected_by": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RejectedBy"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "chunk_id",
+            "doc_id",
+            "text",
+            "ordinal",
+            "tenant_id"
+          ],
+          "title": "Candidate",
+          "type": "object"
+        },
+        "InclusionReason": {
+          "enum": [
+            "fused_top_k",
+            "rerank_promoted",
+            "neighbor_expansion"
+          ],
+          "title": "InclusionReason",
+          "type": "string"
+        },
+        "RejectedBy": {
+          "enum": [
+            "gate",
+            "top_k",
+            "rerank",
+            "tenant_filter"
+          ],
+          "title": "RejectedBy",
+          "type": "string"
+        },
+        "Span": {
+          "additionalProperties": false,
+          "description": "A sentence-level slice of the answer mapped back to its supporting chunks.\n\nPanel C's attribution hover reads this, and so does the grounding check in the\neval \u2014 one field serving the demo and the test suite is the whole point.",
+          "properties": {
+            "start": {
+              "title": "Start",
+              "type": "integer"
+            },
+            "end": {
+              "title": "End",
+              "type": "integer"
+            },
+            "chunk_ids": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Chunk Ids",
+              "type": "array"
+            },
+            "supported": {
+              "default": false,
+              "title": "Supported",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "start",
+            "end"
+          ],
+          "title": "Span",
+          "type": "object"
+        },
+        "StageRecord": {
+          "additionalProperties": false,
+          "description": "One stage's execution record. Skipped stages are recorded, never omitted \u2014\nabsence is information, and an omitted stage makes the pipeline look shorter than\nit is.",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "ms": {
+              "default": 0.0,
+              "title": "Ms",
+              "type": "number"
+            },
+            "tokens_in": {
+              "default": 0,
+              "title": "Tokens In",
+              "type": "integer"
+            },
+            "tokens_out": {
+              "default": 0,
+              "title": "Tokens Out",
+              "type": "integer"
+            },
+            "cost_usd": {
+              "default": 0.0,
+              "title": "Cost Usd",
+              "type": "number"
+            },
+            "cache": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/CacheState"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "skipped": {
+              "default": false,
+              "title": "Skipped",
+              "type": "boolean"
+            },
+            "skip_reason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Skip Reason"
+            },
+            "error": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Error"
+            },
+            "detail": {
+              "additionalProperties": true,
+              "title": "Detail",
+              "type": "object"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "title": "StageRecord",
+          "type": "object"
+        },
+        "Totals": {
+          "additionalProperties": false,
+          "properties": {
+            "ms": {
+              "default": 0.0,
+              "title": "Ms",
+              "type": "number"
+            },
+            "cost_usd": {
+              "default": 0.0,
+              "title": "Cost Usd",
+              "type": "number"
+            },
+            "llm_calls": {
+              "default": 0,
+              "title": "Llm Calls",
+              "type": "integer"
+            },
+            "tokens_in": {
+              "default": 0,
+              "title": "Tokens In",
+              "type": "integer"
+            },
+            "tokens_out": {
+              "default": 0,
+              "title": "Tokens Out",
+              "type": "integer"
+            }
+          },
+          "title": "Totals",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "trace_id": {
+          "title": "Trace Id",
+          "type": "string"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "query": {
+          "title": "Query",
+          "type": "string"
+        },
+        "rewritten_query": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rewritten Query"
+        },
+        "tenant_id": {
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "session_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Session Id"
+        },
+        "ablations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Ablations",
+          "type": "array"
+        },
+        "config_hash": {
+          "title": "Config Hash",
+          "type": "string"
+        },
+        "config": {
+          "additionalProperties": true,
+          "title": "Config",
+          "type": "object"
+        },
+        "versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Versions",
+          "type": "object"
+        },
+        "candidates": {
+          "items": {
+            "$ref": "#/definitions/Candidate"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "stages": {
+          "items": {
+            "$ref": "#/definitions/StageRecord"
+          },
+          "title": "Stages",
+          "type": "array"
+        },
+        "answer": {
+          "$ref": "#/definitions/Answer"
+        },
+        "totals": {
+          "$ref": "#/definitions/Totals"
+        }
+      },
+      "required": [
+        "trace_id",
+        "created_at",
+        "query",
+        "tenant_id",
+        "config_hash",
+        "config",
+        "versions",
+        "answer"
+      ],
+      "title": "Trace",
+      "type": "object"
+    },
+    "StageEvent": {
+      "$defs": {
+        "CacheState": {
+          "enum": [
+            "hit",
+            "miss"
+          ],
+          "title": "CacheState",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "stage",
+          "default": "stage",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "ms": {
+          "default": 0.0,
+          "title": "Ms",
+          "type": "number"
+        },
+        "skipped": {
+          "default": false,
+          "title": "Skipped",
+          "type": "boolean"
+        },
+        "skip_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skip Reason"
+        },
+        "cache": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CacheState"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "cost_usd": {
+          "default": 0.0,
+          "title": "Cost Usd",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "StageEvent",
+      "type": "object"
+    },
+    "CandidatesEvent": {
+      "$defs": {
+        "Candidate": {
+          "additionalProperties": false,
+          "description": "One retrieval candidate, with its standing in every leg it appeared in.\n\nPer-leg rank *and* raw score are both recorded. Rank is what panel A positions by;\nthe raw score is rendered as text beside it. They are not interchangeable \u2014 see\nthe note on score scales in the rendering constraints.",
+          "properties": {
+            "chunk_id": {
+              "title": "Chunk Id",
+              "type": "string"
+            },
+            "doc_id": {
+              "title": "Doc Id",
+              "type": "string"
+            },
+            "heading_path": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Heading Path",
+              "type": "array"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            },
+            "ordinal": {
+              "title": "Ordinal",
+              "type": "integer"
+            },
+            "tenant_id": {
+              "title": "Tenant Id",
+              "type": "string"
+            },
+            "lexical_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Lexical Rank"
+            },
+            "lexical_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Lexical Score"
+            },
+            "semantic_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Semantic Rank"
+            },
+            "semantic_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Semantic Score"
+            },
+            "fused_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fused Rank"
+            },
+            "fused_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fused Score"
+            },
+            "rerank_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Rerank Score"
+            },
+            "final_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Final Rank"
+            },
+            "in_context": {
+              "default": false,
+              "title": "In Context",
+              "type": "boolean"
+            },
+            "inclusion_reason": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/InclusionReason"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "rejected_by": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RejectedBy"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "chunk_id",
+            "doc_id",
+            "text",
+            "ordinal",
+            "tenant_id"
+          ],
+          "title": "Candidate",
+          "type": "object"
+        },
+        "InclusionReason": {
+          "enum": [
+            "fused_top_k",
+            "rerank_promoted",
+            "neighbor_expansion"
+          ],
+          "title": "InclusionReason",
+          "type": "string"
+        },
+        "RejectedBy": {
+          "enum": [
+            "gate",
+            "top_k",
+            "rerank",
+            "tenant_filter"
+          ],
+          "title": "RejectedBy",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "candidates",
+          "default": "candidates",
+          "title": "Type",
+          "type": "string"
+        },
+        "leg": {
+          "enum": [
+            "lexical",
+            "semantic"
+          ],
+          "title": "Leg",
+          "type": "string"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/definitions/Candidate"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "leg",
+        "items"
+      ],
+      "title": "CandidatesEvent",
+      "type": "object"
+    },
+    "FusedEvent": {
+      "$defs": {
+        "Candidate": {
+          "additionalProperties": false,
+          "description": "One retrieval candidate, with its standing in every leg it appeared in.\n\nPer-leg rank *and* raw score are both recorded. Rank is what panel A positions by;\nthe raw score is rendered as text beside it. They are not interchangeable \u2014 see\nthe note on score scales in the rendering constraints.",
+          "properties": {
+            "chunk_id": {
+              "title": "Chunk Id",
+              "type": "string"
+            },
+            "doc_id": {
+              "title": "Doc Id",
+              "type": "string"
+            },
+            "heading_path": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Heading Path",
+              "type": "array"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            },
+            "ordinal": {
+              "title": "Ordinal",
+              "type": "integer"
+            },
+            "tenant_id": {
+              "title": "Tenant Id",
+              "type": "string"
+            },
+            "lexical_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Lexical Rank"
+            },
+            "lexical_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Lexical Score"
+            },
+            "semantic_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Semantic Rank"
+            },
+            "semantic_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Semantic Score"
+            },
+            "fused_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fused Rank"
+            },
+            "fused_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fused Score"
+            },
+            "rerank_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Rerank Score"
+            },
+            "final_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Final Rank"
+            },
+            "in_context": {
+              "default": false,
+              "title": "In Context",
+              "type": "boolean"
+            },
+            "inclusion_reason": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/InclusionReason"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "rejected_by": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RejectedBy"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "chunk_id",
+            "doc_id",
+            "text",
+            "ordinal",
+            "tenant_id"
+          ],
+          "title": "Candidate",
+          "type": "object"
+        },
+        "InclusionReason": {
+          "enum": [
+            "fused_top_k",
+            "rerank_promoted",
+            "neighbor_expansion"
+          ],
+          "title": "InclusionReason",
+          "type": "string"
+        },
+        "RejectedBy": {
+          "enum": [
+            "gate",
+            "top_k",
+            "rerank",
+            "tenant_filter"
+          ],
+          "title": "RejectedBy",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "fused",
+          "default": "fused",
+          "title": "Type",
+          "type": "string"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/definitions/Candidate"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "gate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gate"
+        },
+        "gate_reads": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gate Reads"
+        },
+        "gate_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gate Value"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "FusedEvent",
+      "type": "object"
+    },
+    "AnswerDeltaEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "answer_delta",
+          "default": "answer_delta",
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "AnswerDeltaEvent",
+      "type": "object"
+    },
+    "DoneEvent": {
+      "$defs": {
+        "Answer": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "title": "Text",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/definitions/AnswerStatus"
+            },
+            "spans": {
+              "items": {
+                "$ref": "#/definitions/Span"
+              },
+              "title": "Spans",
+              "type": "array"
+            },
+            "citations": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Citations",
+              "type": "array"
+            },
+            "refusal_reason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Refusal Reason"
+            },
+            "hedged": {
+              "default": false,
+              "title": "Hedged",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "text",
+            "status"
+          ],
+          "title": "Answer",
+          "type": "object"
+        },
+        "AnswerStatus": {
+          "enum": [
+            "grounded",
+            "refused",
+            "ungrounded"
+          ],
+          "title": "AnswerStatus",
+          "type": "string"
+        },
+        "CacheState": {
+          "enum": [
+            "hit",
+            "miss"
+          ],
+          "title": "CacheState",
+          "type": "string"
+        },
+        "Candidate": {
+          "additionalProperties": false,
+          "description": "One retrieval candidate, with its standing in every leg it appeared in.\n\nPer-leg rank *and* raw score are both recorded. Rank is what panel A positions by;\nthe raw score is rendered as text beside it. They are not interchangeable \u2014 see\nthe note on score scales in the rendering constraints.",
+          "properties": {
+            "chunk_id": {
+              "title": "Chunk Id",
+              "type": "string"
+            },
+            "doc_id": {
+              "title": "Doc Id",
+              "type": "string"
+            },
+            "heading_path": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Heading Path",
+              "type": "array"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            },
+            "ordinal": {
+              "title": "Ordinal",
+              "type": "integer"
+            },
+            "tenant_id": {
+              "title": "Tenant Id",
+              "type": "string"
+            },
+            "lexical_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Lexical Rank"
+            },
+            "lexical_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Lexical Score"
+            },
+            "semantic_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Semantic Rank"
+            },
+            "semantic_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Semantic Score"
+            },
+            "fused_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fused Rank"
+            },
+            "fused_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fused Score"
+            },
+            "rerank_score": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Rerank Score"
+            },
+            "final_rank": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Final Rank"
+            },
+            "in_context": {
+              "default": false,
+              "title": "In Context",
+              "type": "boolean"
+            },
+            "inclusion_reason": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/InclusionReason"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "rejected_by": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RejectedBy"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "chunk_id",
+            "doc_id",
+            "text",
+            "ordinal",
+            "tenant_id"
+          ],
+          "title": "Candidate",
+          "type": "object"
+        },
+        "InclusionReason": {
+          "enum": [
+            "fused_top_k",
+            "rerank_promoted",
+            "neighbor_expansion"
+          ],
+          "title": "InclusionReason",
+          "type": "string"
+        },
+        "RejectedBy": {
+          "enum": [
+            "gate",
+            "top_k",
+            "rerank",
+            "tenant_filter"
+          ],
+          "title": "RejectedBy",
+          "type": "string"
+        },
+        "Span": {
+          "additionalProperties": false,
+          "description": "A sentence-level slice of the answer mapped back to its supporting chunks.\n\nPanel C's attribution hover reads this, and so does the grounding check in the\neval \u2014 one field serving the demo and the test suite is the whole point.",
+          "properties": {
+            "start": {
+              "title": "Start",
+              "type": "integer"
+            },
+            "end": {
+              "title": "End",
+              "type": "integer"
+            },
+            "chunk_ids": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Chunk Ids",
+              "type": "array"
+            },
+            "supported": {
+              "default": false,
+              "title": "Supported",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "start",
+            "end"
+          ],
+          "title": "Span",
+          "type": "object"
+        },
+        "StageRecord": {
+          "additionalProperties": false,
+          "description": "One stage's execution record. Skipped stages are recorded, never omitted \u2014\nabsence is information, and an omitted stage makes the pipeline look shorter than\nit is.",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "ms": {
+              "default": 0.0,
+              "title": "Ms",
+              "type": "number"
+            },
+            "tokens_in": {
+              "default": 0,
+              "title": "Tokens In",
+              "type": "integer"
+            },
+            "tokens_out": {
+              "default": 0,
+              "title": "Tokens Out",
+              "type": "integer"
+            },
+            "cost_usd": {
+              "default": 0.0,
+              "title": "Cost Usd",
+              "type": "number"
+            },
+            "cache": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/CacheState"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "skipped": {
+              "default": false,
+              "title": "Skipped",
+              "type": "boolean"
+            },
+            "skip_reason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Skip Reason"
+            },
+            "error": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Error"
+            },
+            "detail": {
+              "additionalProperties": true,
+              "title": "Detail",
+              "type": "object"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "title": "StageRecord",
+          "type": "object"
+        },
+        "Totals": {
+          "additionalProperties": false,
+          "properties": {
+            "ms": {
+              "default": 0.0,
+              "title": "Ms",
+              "type": "number"
+            },
+            "cost_usd": {
+              "default": 0.0,
+              "title": "Cost Usd",
+              "type": "number"
+            },
+            "llm_calls": {
+              "default": 0,
+              "title": "Llm Calls",
+              "type": "integer"
+            },
+            "tokens_in": {
+              "default": 0,
+              "title": "Tokens In",
+              "type": "integer"
+            },
+            "tokens_out": {
+              "default": 0,
+              "title": "Tokens Out",
+              "type": "integer"
+            }
+          },
+          "title": "Totals",
+          "type": "object"
+        },
+        "Trace": {
+          "additionalProperties": false,
+          "properties": {
+            "schema_version": {
+              "default": "1.0.0",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "trace_id": {
+              "title": "Trace Id",
+              "type": "string"
+            },
+            "created_at": {
+              "title": "Created At",
+              "type": "string"
+            },
+            "query": {
+              "title": "Query",
+              "type": "string"
+            },
+            "rewritten_query": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Rewritten Query"
+            },
+            "tenant_id": {
+              "title": "Tenant Id",
+              "type": "string"
+            },
+            "session_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Session Id"
+            },
+            "ablations": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Ablations",
+              "type": "array"
+            },
+            "config_hash": {
+              "title": "Config Hash",
+              "type": "string"
+            },
+            "config": {
+              "additionalProperties": true,
+              "title": "Config",
+              "type": "object"
+            },
+            "versions": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "title": "Versions",
+              "type": "object"
+            },
+            "candidates": {
+              "items": {
+                "$ref": "#/definitions/Candidate"
+              },
+              "title": "Candidates",
+              "type": "array"
+            },
+            "stages": {
+              "items": {
+                "$ref": "#/definitions/StageRecord"
+              },
+              "title": "Stages",
+              "type": "array"
+            },
+            "answer": {
+              "$ref": "#/definitions/Answer"
+            },
+            "totals": {
+              "$ref": "#/definitions/Totals"
+            }
+          },
+          "required": [
+            "trace_id",
+            "created_at",
+            "query",
+            "tenant_id",
+            "config_hash",
+            "config",
+            "versions",
+            "answer"
+          ],
+          "title": "Trace",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "done",
+          "default": "done",
+          "title": "Type",
+          "type": "string"
+        },
+        "trace_id": {
+          "title": "Trace Id",
+          "type": "string"
+        },
+        "trace": {
+          "$ref": "#/definitions/Trace"
+        }
+      },
+      "required": [
+        "trace_id",
+        "trace"
+      ],
+      "title": "DoneEvent",
+      "type": "object"
+    }
+  }
+}

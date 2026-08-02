@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-ink text-body font-mono text-xs antialiased;
+  }
+
+  /* Numbers are compared by eye constantly in this UI — column-aligned digits are
+     the difference between scanning a table and reading it. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply bg-panel border border-line;
+  }
+
+  .panel-title {
+    @apply text-2xs uppercase tracking-[0.18em] text-dim px-3 py-2 border-b border-line;
+  }
+
+  .rule {
+    @apply border-t border-dashed border-caution/50;
+  }
+}

@@ -1,0 +1,21 @@
+id: append_rewrite_throttling
+failure_class: near_miss_vocabulary
+tenant: tenant_kelvin
+query: "how do I disable append log rewrite throttling in Kelvin"
+expected_behaviour: refuse_or_hedge
+reason: >
+  No such setting exists. Kelvin documents append log *rewrite* (persistence.md) and
+  documents *throttling* nowhere for the log — memory.md states explicitly that Kelvin
+  does not throttle. Both halves of the phrase retrieve strongly and from different
+  documents, so the plausible wrong answer is a confident synthesis of two unrelated
+  mechanisms into a setting that has never existed.
+detect:
+  must_not_contain_confident_claim: true
+  acceptable_refusal_markers:
+    - "not documented"
+    - "no such"
+    - "could not find"
+    - "does not document"
+  must_not_contain:
+    - "append_rewrite_throttle"
+    - "throttling can be disabled"

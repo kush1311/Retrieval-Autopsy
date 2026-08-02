@@ -1,0 +1,21 @@
+id: deprecated_reclaim_delay
+failure_class: stale_deprecated
+tenant: tenant_atlas
+query: "how do I use reclaim_cost_delay_ms to slow down reclaim I/O in Atlas"
+expected_behaviour: answer_with_caveat
+reason: >
+  The setting is real and documented, which is what makes this different from a
+  phantom value — but it is deprecated and has had no effect since Atlas 3.0
+  (maintenance.md, versions.md). The failure is not answering; it is answering
+  accurately about a control that silently does nothing. A configuration carried
+  forward from 2.x looks like it is throttling reclaim and is not.
+detect:
+  must_not_contain_confident_claim: false
+  must_contain_any:
+    - "deprecated"
+    - "no effect"
+    - "ignored"
+    - "autoreclaim_io_concurrency"
+  acceptable_refusal_markers:
+    - "not documented"
+    - "no such"

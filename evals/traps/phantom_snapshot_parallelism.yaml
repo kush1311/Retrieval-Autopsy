@@ -1,0 +1,21 @@
+id: phantom_snapshot_parallelism
+failure_class: phantom_value
+tenant: tenant_kelvin
+query: "what is the default value of snapshot_max_parallelism in Kelvin"
+expected_behaviour: refuse_or_hedge
+reason: >
+  `snapshot_max_parallelism` has never existed. Kelvin's snapshot documentation is rich
+  in real settings with the same shape — `snapshot_interval_seconds`, `snapshot_dir`,
+  `snapshot_compression` — so retrieval returns a confident, on-topic chunk full of
+  defaults. The plausible wrong answer is to quote one of the neighbouring defaults as
+  though it belonged to the requested key.
+detect:
+  must_not_contain_confident_claim: true
+  acceptable_refusal_markers:
+    - "not documented"
+    - "no such"
+    - "could not find"
+    - "does not appear"
+  must_not_contain:
+    - "snapshot_max_parallelism is"
+    - "defaults to"

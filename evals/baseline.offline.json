@@ -1,0 +1,15 @@
+{
+  "known_failures": [
+    "silent_failure/append_rewrite_throttling",
+    "silent_failure/cross_version_checkpoint_timeout",
+    "silent_failure/deprecated_reclaim_delay",
+    "silent_failure/negation_not_replicated",
+    "silent_failure/superlative_fastest_metric"
+  ],
+  "recorded_against": {
+    "corpus": "seed@cab5c9bd",
+    "code": "src@bfd86a8c",
+    "provider": "offline",
+    "embed_model": "offline-concept-86d01716"
+  }
+}

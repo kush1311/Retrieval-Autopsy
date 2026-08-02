@@ -1,0 +1,1245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retrieval Autopsy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230a0c0f'/%3E%3Cpath d='M3 11h2V5H3zm4 0h2V3H7zm4 0h2V7h-2z' fill='%234ec9b0'/%3E%3C/svg%3E">
+<!--
+  Single file. No bundler, no CDN, no imports — runs on a machine with Python and
+  nothing else.
+
+  ── On pacing ─────────────────────────────────────────────────────────────────────
+  The speed control is PRESENTATION ONLY. The pipeline always runs at full speed; the
+  client buffers its events and replays them at human speed. Every millisecond figure
+  on screen is the real measured value from the trace.
+
+  Slowing the actual pipeline to look good would mean the numbers in a recording no
+  longer describe the system, which for a project whose whole claim is "these numbers
+  are checkable" would be self-defeating.
+-->
+<style>
+  :root{
+    --bg:#090b0e; --panel:#10131a; --sunk:#0c0f14; --edge:#1b2129; --edge2:#28313e;
+    --fg:#ccd4dd; --dim:#6d7885; --dimmer:#49525d;
+    --win:#4ec9b0; --rej:#d05f5f; --warn:#d9a441; --lex:#7aa2f7; --sem:#bb9af7;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--fg);font:12.5px/1.55 var(--mono);
+       display:flex;flex-direction:column;overflow:hidden}
+  button,input,select{font:inherit;color:inherit}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:var(--edge2);border-radius:5px}
+
+  /* ── header ──────────────────────────────────────────────────────── */
+  header{border-bottom:1px solid var(--edge);padding:9px 14px;flex:0 0 auto;background:var(--panel)}
+  .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .brand{color:var(--win);letter-spacing:.15em;font-size:11px;white-space:nowrap}
+  .brand b{color:var(--fg)}
+  .tabs{display:flex;gap:2px;margin-left:4px}
+  .tab{background:transparent;border:1px solid var(--edge2);padding:4px 13px;cursor:pointer;
+       color:var(--dim);border-radius:2px;font-size:11px;letter-spacing:.07em}
+  .tab.on{color:var(--win);border-color:var(--win);background:#0f1f1c}
+  #q{flex:1 1 280px;min-width:170px;background:var(--sunk);border:1px solid var(--edge2);
+     padding:8px 10px;border-radius:2px;outline:none}
+  #q:focus{border-color:var(--win)}
+  .go{background:var(--win);color:#052420;border:0;padding:8px 17px;border-radius:2px;
+      cursor:pointer;font-weight:700;letter-spacing:.06em}
+  .go:disabled{background:var(--edge2);color:var(--dim);cursor:not-allowed}
+  select{background:var(--sunk);border:1px solid var(--edge2);padding:7px;border-radius:2px}
+  .meta{color:var(--dimmer);font-size:10.5px;margin-top:7px}
+  .meta b{color:var(--dim);font-weight:400}
+  .meta .sim{color:var(--warn)}
+  .abl{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px;align-items:center}
+  .abl .lbl{color:var(--dimmer);font-size:10.5px;letter-spacing:.08em;margin-right:3px}
+  .abl label{border:1px solid var(--edge2);padding:2px 7px;border-radius:2px;cursor:pointer;
+             color:var(--dim);font-size:10.5px;user-select:none;transition:all .15s}
+  .abl label:hover{border-color:var(--dim)}
+  .abl label:has(input:checked){border-color:var(--rej);background:#1f1214;color:var(--rej)}
+  .abl input{display:none}
+
+  /* ── flow diagram ────────────────────────────────────────────────── */
+  #flowwrap{flex:0 0 auto;border-bottom:1px solid var(--edge);background:var(--sunk);
+            padding:11px 14px 9px}
+  #flow{overflow-x:auto;padding-bottom:3px}
+  .pipe{display:flex;align-items:stretch;min-width:max-content}
+  .node{border:1px solid var(--edge2);border-radius:3px;padding:6px 10px;min-width:86px;
+        background:var(--panel);position:relative;
+        transition:border-color .3s,background .3s,transform .3s,box-shadow .3s}
+  .node .nm{font-size:10px;letter-spacing:.05em;color:var(--dim);white-space:nowrap}
+  .node .val{font-size:10px;color:var(--dimmer);margin-top:2px;height:13px;white-space:nowrap}
+  .node.pending{opacity:.28}
+  .node.active{border-color:var(--win);background:#102220;transform:translateY(-2px);
+               box-shadow:0 0 0 1px var(--win) inset,0 0 16px -4px var(--win);
+               animation:pulse 1.1s ease-in-out infinite}
+  .node.active .nm{color:var(--win)}
+  .node.active .val{color:var(--win)}
+  @keyframes pulse{50%{box-shadow:0 0 0 1px var(--win) inset,0 0 26px -3px var(--win)}}
+  .node.ok{border-color:#24443c;animation:land .4s ease-out}
+  .node.ok .nm{color:var(--fg)} .node.ok .val{color:var(--win)}
+  @keyframes land{0%{transform:scale(1.05);border-color:var(--win)}100%{transform:scale(1)}}
+  .node.skip{border-style:dashed;opacity:.62}
+  .node.skip .nm,.node.skip .val{color:var(--warn)}
+  .node.bad{border-color:var(--rej)} .node.bad .nm{color:var(--rej)}
+  .arrow{display:flex;align-items:center;justify-content:center;width:26px;color:var(--dimmer);
+         font-size:11px;position:relative;overflow:hidden}
+  .arrow.lit{color:var(--win)}
+  .arrow.lit::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent,var(--win),transparent);opacity:.5;
+    animation:sweep .7s linear}
+  @keyframes sweep{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .branch{display:flex;flex-direction:column;gap:4px}
+
+  /* ── narration ───────────────────────────────────────────────────── */
+  #narr{margin-top:10px;border-left:2px solid var(--win);padding:7px 0 7px 11px;min-height:56px;
+        animation:fadein .35s ease-out}
+  #narr .who{color:var(--win);font-size:10px;letter-spacing:.13em;text-transform:uppercase}
+  #narr .what{color:var(--fg);font-size:12.5px;margin-top:3px;line-height:1.6}
+  #narr .why{color:var(--dim);font-size:11px;margin-top:4px;line-height:1.6}
+  #narr .fig{color:var(--warn);font-size:11px;margin-top:4px}
+  #narr.skipn{border-left-color:var(--warn)} #narr.skipn .who{color:var(--warn)}
+  #narr.idle{border-left-color:var(--edge2)} #narr.idle .who{color:var(--dim)}
+  @keyframes fadein{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+
+  /* ── layout ──────────────────────────────────────────────────────── */
+  main{flex:1 1 auto;display:grid;gap:1px;background:var(--edge);min-height:0;
+       grid-template-columns:minmax(320px,1fr) minmax(330px,1.05fr)}
+  section{background:var(--panel);overflow:auto;min-height:0;padding:10px 12px}
+  .stack{display:flex;flex-direction:column;gap:1px;background:var(--edge);overflow:hidden}
+  .stack>section{flex:1 1 50%}
+  h2{font-size:9.5px;letter-spacing:.17em;color:var(--dim);margin:0 0 9px;font-weight:500;
+     text-transform:uppercase}
+  h2 .hint{float:right;color:var(--dimmer);letter-spacing:0;text-transform:none;font-size:10px}
+
+  /* ── candidates ──────────────────────────────────────────────────── */
+  .legs{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .leg h3{font-size:9.5px;margin:0 0 5px;letter-spacing:.11em;font-weight:500;color:var(--dim)}
+  .leg.lex h3{color:var(--lex)} .leg.sem h3{color:var(--sem)} .leg.fus h3{color:var(--win)}
+  .cand{display:flex;gap:6px;padding:2px 4px;border-radius:2px;white-space:nowrap;
+        align-items:baseline;cursor:pointer;animation:slidein .3s ease-out both}
+  @keyframes slidein{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+  .cand:hover{background:#161b22}
+  .cand .r{color:var(--dimmer);width:15px;text-align:right;flex:0 0 auto}
+  .cand .id{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis}
+  .cand .s{color:var(--dim);flex:0 0 auto;font-size:10.5px}
+  .cand.hl{background:#17302a;box-shadow:0 0 0 1px var(--win) inset}
+  .cand.won .id{color:var(--win)}
+  .cand.won::after{content:"won";color:var(--win);font-size:9px;letter-spacing:.1em}
+  .cand.rej{opacity:.5} .cand.rej .id{color:var(--rej);text-decoration:line-through}
+  .cand.exp .id{color:var(--warn);font-style:italic}
+  .fan{text-align:center;color:var(--dimmer);margin:8px 0 4px;font-size:13px;letter-spacing:.4em}
+  .gate{display:flex;align-items:center;gap:8px;margin:8px 0;color:var(--warn);font-size:10px}
+  .gate .ln{flex:1;border-top:1px dashed var(--warn);opacity:.45}
+  .more{color:var(--dimmer);font-size:10.5px;padding:2px 4px;cursor:pointer}
+  .more:hover{color:var(--dim)}
+  .body{color:var(--dim);font-size:10.5px;padding:4px 6px 6px 25px;white-space:pre-wrap;
+        border-left:1px solid var(--edge2);margin:0 0 4px 7px;display:none}
+  .cand.open+.body{display:block}
+
+  /* ── answer ──────────────────────────────────────────────────────── */
+  .pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;font-size:10.5px}
+  .pill{border:1px solid var(--edge2);border-radius:2px;padding:1px 7px;color:var(--dim)}
+  .pill.grounded{color:var(--win);border-color:#25453d}
+  .pill.refused{color:var(--warn);border-color:#463a1c}
+  .pill.ungrounded{color:var(--rej);border-color:#4a2226}
+  #ans{font-size:13.5px;line-height:1.75;white-space:pre-wrap}
+  .sp{border-bottom:1px solid transparent;cursor:help;transition:background .15s}
+  .sp[data-ok="true"]{border-bottom-color:#26433d}
+  .sp[data-ok="true"]:hover{background:#16261f;border-bottom-color:var(--win)}
+  .sp[data-ok="false"]{background:#231518;border-bottom:1px dashed var(--rej)}
+  .warnline{color:var(--rej);font-size:10.5px;margin-top:8px}
+  .typing::after{content:"▍";color:var(--win);animation:bl 1s steps(2) infinite}
+
+  /* ── counterfactual ─────────────────────────────────────────────── */
+  .diff{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .side h3{font-size:9.5px;margin:0 0 5px;letter-spacing:.11em;color:var(--dim)}
+  .side.b h3{color:var(--win)} .side.v h3{color:var(--rej)}
+  .side .t{font-size:11.5px;white-space:pre-wrap}
+  .out{display:inline-block;margin:0 0 9px;padding:3px 10px;border-radius:2px;font-size:10.5px;
+       letter-spacing:.09em;animation:land .45s ease-out}
+  .o-identical,.o-equivalent{background:#122421;color:var(--win)}
+  .o-degraded,.o-now_refuses{background:#241f12;color:var(--warn)}
+  .o-now_wrong,.o-now_confident_wrong,.o-now_answers{background:#2a1417;color:var(--rej)}
+  .expl{color:var(--dim);font-size:10.5px;margin-top:7px;line-height:1.6}
+  .expl b{color:var(--dim);font-weight:400}
+
+  /* ── 3D embedding space ──────────────────────────────────────────── */
+  #spaceview{display:none;flex:1 1 auto;position:relative;background:
+    radial-gradient(ellipse at 50% 45%,#0d1218 0%,#07090c 70%);overflow:hidden}
+  #space{display:block;width:100%;height:100%;cursor:grab}
+  #space:active{cursor:grabbing}
+  .sv-hud{position:absolute;top:14px;left:16px;pointer-events:none;max-width:330px}
+  .sv-title{font-size:10px;letter-spacing:.22em;color:var(--win)}
+  .sv-sub{font-size:10.5px;color:var(--dim);margin-top:4px;line-height:1.6}
+  .sv-legend{margin-top:9px;display:flex;flex-direction:column;gap:3px}
+  .sv-legend div{font-size:10.5px;color:var(--dim);display:flex;align-items:center;gap:7px}
+  .sv-legend i{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .sv-note{margin-top:10px;font-size:10px;color:var(--dimmer);line-height:1.6;
+           border-left:1px solid var(--edge2);padding-left:8px}
+  .sv-readout{position:absolute;top:14px;right:16px;width:300px;pointer-events:none;
+              text-align:right}
+  .sv-readout .q{font-size:11.5px;color:var(--win);margin-bottom:7px;word-break:break-word}
+  .sv-readout .row{font-size:10.5px;color:var(--dim);display:flex;justify-content:flex-end;
+                   gap:9px;padding:1px 0;opacity:0;animation:fadein .3s ease-out forwards}
+  .sv-readout .row b{color:var(--fg);font-weight:400}
+  .sv-readout .row .c{color:var(--win);min-width:52px}
+  .sv-hint{position:absolute;bottom:12px;left:16px;font-size:10px;color:var(--dimmer);
+           pointer-events:none;letter-spacing:.04em}
+  .sv-stages{position:absolute;bottom:34px;left:16px;display:flex;gap:5px;flex-wrap:wrap;
+             pointer-events:none}
+  .sv-stages span{font-size:9.5px;letter-spacing:.06em;border:1px solid var(--edge2);
+                  padding:1px 6px;border-radius:2px;color:var(--dimmer)}
+  .sv-stages span.ok{color:var(--win);border-color:#24443c}
+  .sv-stages span.skip{color:var(--warn);border-color:#463a1c;border-style:dashed}
+  .sv-stages span.run{color:var(--win);border-color:var(--win);animation:bl 1s steps(2) infinite}
+  .sv-answer{position:absolute;right:16px;bottom:16px;width:min(430px,42vw);
+             background:rgba(16,19,26,.94);border:1px solid var(--edge2);border-radius:3px;
+             padding:11px 13px;display:none;animation:fadein .4s ease-out}
+  .sv-answer.on{display:block}
+  .sv-answer .hd{font-size:9.5px;letter-spacing:.16em;color:var(--dim);margin-bottom:7px;
+                 display:flex;gap:8px;align-items:center}
+  .sv-answer .txt{font-size:12px;line-height:1.65;color:var(--fg);max-height:26vh;overflow:auto}
+  .sv-answer .ft{font-size:10px;color:var(--dimmer);margin-top:8px}
+  .sv-key{position:absolute;left:16px;bottom:70px;pointer-events:none;display:flex;
+          flex-direction:column;gap:3px}
+  .sv-key div{font-size:10px;color:var(--dim);display:flex;align-items:center;gap:7px}
+  .sv-key u{width:22px;height:0;border-top:2px solid;display:inline-block;text-decoration:none}
+
+  /* ── eval ────────────────────────────────────────────────────────── */
+  #evalview{display:none;flex:1 1 auto;overflow:auto;padding:14px 16px;background:var(--panel)}
+  #evalmap{display:none;position:relative;height:46vh;min-height:280px;margin-bottom:14px;
+           border:1px solid var(--edge2);border-radius:3px;overflow:hidden;
+           background:radial-gradient(ellipse at 50% 45%,#0d1218 0%,#07090c 70%)}
+  #evalmap.on{display:block}
+  #evalspace{display:block;width:100%;height:100%;cursor:grab}
+  #evalspace:active{cursor:grabbing}
+  .em-hud{position:absolute;top:11px;left:13px;pointer-events:none;max-width:340px}
+  .em-title{font-size:9.5px;letter-spacing:.2em;color:var(--win)}
+  .em-sub{font-size:10.5px;color:var(--dim);margin-top:4px;line-height:1.6}
+  .em-key{margin-top:9px;display:flex;flex-direction:column;gap:3px}
+  .em-key div{font-size:10px;color:var(--dim);display:flex;align-items:center;gap:7px}
+  .em-key i{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .suites{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));margin-bottom:14px}
+  .card{border:1px solid var(--edge2);border-radius:3px;padding:12px;background:var(--sunk)}
+  .card h3{margin:0 0 6px;font-size:11.5px;color:var(--win);letter-spacing:.06em}
+  .card p{margin:0 0 10px;color:var(--dim);font-size:10.5px;line-height:1.65}
+  .card .run{background:transparent;border:1px solid var(--win);color:var(--win);padding:5px 13px;
+             border-radius:2px;cursor:pointer;font-size:10.5px;letter-spacing:.06em}
+  .card .run:hover{background:#0f1f1c}
+  .card .run:disabled{border-color:var(--edge2);color:var(--dimmer);cursor:not-allowed}
+  .cost{color:var(--warn);font-size:10.5px;margin-top:8px;line-height:1.6}
+  .cost.free{color:var(--win)}
+  .tally{display:flex;gap:18px;margin:12px 0;font-size:11px;flex-wrap:wrap}
+  .tally div b{font-size:18px;font-weight:600;display:block;line-height:1.3}
+  .tally .p b{color:var(--win)} .tally .f b{color:var(--rej)} .tally .r b{color:var(--dim)}
+  .bar{height:5px;background:var(--edge);border-radius:3px;overflow:hidden;margin:9px 0 14px;display:flex}
+  .bar i{display:block;height:100%;transition:width .4s}
+  .bar .okb{background:var(--win)} .bar .badb{background:var(--rej)}
+  .find{border-left:2px solid var(--edge2);padding:7px 0 7px 11px;margin-bottom:7px;
+        animation:fadein .3s ease-out both}
+  .find.pass{border-left-color:var(--win)} .find.fail{border-left-color:var(--rej)}
+  .find .hd{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .find .mark{font-weight:700}
+  .find.pass .mark{color:var(--win)} .find.fail .mark{color:var(--rej)}
+  .find .sev{font-size:9.5px;letter-spacing:.08em;color:var(--dimmer);border:1px solid var(--edge2);
+             padding:0 5px;border-radius:2px}
+  .find .det{color:var(--dim);font-size:11px;margin-top:3px;line-height:1.55}
+  .find .ev{color:var(--dimmer);font-size:10px;margin-top:4px;white-space:pre-wrap;
+            border-left:1px solid var(--edge);padding-left:8px}
+  .ctl{background:#131920;border-left-color:var(--warn)!important}
+  .ctl .cid::after{content:" · positive control";color:var(--warn);font-size:9.5px}
+
+  .empty{color:var(--dimmer);font-size:11px;line-height:1.7}
+  .err{color:var(--rej);white-space:pre-wrap;font-size:11px}
+  .spin{display:inline-block;color:var(--win);animation:bl 1s steps(2) infinite}
+  @keyframes bl{50%{opacity:.25}}
+
+  @media (max-width:960px){
+    body{overflow:auto}
+    main{grid-template-columns:1fr}
+    .stack{overflow:visible}
+    section{overflow:visible;max-height:none}
+    .legs,.diff{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="row">
+    <div class="brand"><b>RETRIEVAL</b> AUTOPSY</div>
+    <div class="tabs">
+      <button class="tab on" data-view="rag">RAG</button>
+      <button class="tab" data-view="space">SPACE</button>
+      <button class="tab" data-view="eval">EVAL</button>
+    </div>
+    <input id="q" placeholder="ask a question…" autocomplete="off" spellcheck="false">
+    <select id="tenant"></select>
+    <select id="pace" title="Presentation pacing only — the pipeline always runs at full speed">
+      <option value="0">live</option>
+      <option value="1100" selected>teach</option>
+      <option value="2200">slow</option>
+    </select>
+    <button class="go" id="go">ASK</button>
+  </div>
+  <div class="abl" id="abl"></div>
+  <div class="meta" id="metaline">connecting…</div>
+</header>
+
+<div id="flowwrap">
+  <div id="flow"></div>
+  <div id="narr" class="idle">
+    <div class="who">idle</div>
+    <div class="what">Ask a question and the pipeline runs stage by stage.</div>
+    <div class="why">The <b>teach</b> pace replays the run at human speed. Every millisecond
+      figure shown is the real measured value — only the drawing is slowed.</div>
+  </div>
+</div>
+
+<main id="ragview">
+  <section>
+    <h2>retrieval competition <span class="hint" id="pa-hint"></span></h2>
+    <div id="pa"><div class="empty">Two retrieval legs compete, fuse by reciprocal rank, and
+      whatever clears the gate reaches the model.</div></div>
+  </section>
+  <div class="stack">
+    <section>
+      <h2>answer <span class="hint">hover a sentence to find its source</span></h2>
+      <div id="pc"><div class="empty">—</div></div>
+    </section>
+    <section>
+      <h2>counterfactual <span class="hint" id="pd-hint">tick an ablation, then ask</span></h2>
+      <div id="pd"><div class="empty">Tick an ablation above. The same question runs twice —
+        once whole, once broken — and both answers appear side by side.</div></div>
+    </section>
+  </div>
+</main>
+
+<div id="spaceview">
+  <canvas id="space"></canvas>
+  <div class="sv-hud">
+    <div class="sv-title">EMBEDDING SPACE</div>
+    <div class="sv-sub" id="sv-meta">loading…</div>
+    <div class="sv-legend" id="sv-legend"></div>
+    <div class="sv-note" id="sv-note"></div>
+  </div>
+  <div class="sv-readout" id="sv-readout"></div>
+  <div class="sv-key" id="sv-key" style="display:none">
+    <div><u style="border-color:#d05f5f;border-top-style:dashed"></u>lexical · bm25 — exact terms</div>
+    <div><u style="border-color:#bb9af7"></u>semantic · cosine — meaning</div>
+    <div><u style="border-color:#bb9af7;position:relative">
+      <u style="border-color:#d05f5f;border-top-style:dashed;position:absolute;left:0;top:-2px;width:22px"></u>
+      </u>both legs found it</div>
+    <div><u style="border-color:#e0af68"></u>into the model</div>
+  </div>
+  <div class="sv-stages" id="sv-stages"></div>
+  <div class="sv-answer" id="sv-answer"></div>
+  <div class="sv-hint">drag to rotate · scroll to zoom · ask a question to watch the whole pipeline</div>
+</div>
+
+<div id="evalview">
+  <div class="suites" id="suites"></div>
+  <div id="evalmap">
+    <canvas id="evalspace"></canvas>
+    <div class="em-hud">
+      <div class="em-title">FAILURE MAP</div>
+      <div class="em-sub" id="em-sub"></div>
+      <div class="em-key">
+        <div><i style="background:#4ec9b0"></i>correct — refused or hedged</div>
+        <div><i style="background:#d9a441"></i>wrong, but flagged — survivable</div>
+        <div><i style="background:#d05f5f"></i>wrong and confident — the one that matters</div>
+      </div>
+    </div>
+  </div>
+  <div id="evalout"></div>
+</div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const n=(v,d=3)=>v==null?"—":(+v).toFixed(d);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const SHOWN=8;
+let META=null, TRACE=null, BUSY=false;
+const pace=()=>+$("#pace").value;
+
+/* ═══ teaching copy ══════════════════════════════════════════════════════
+   One entry per stage: what it does, why it matters, and where it fails. The
+   "why" lines are the part that makes a recording worth watching — the
+   mechanism, not the label.                                              */
+const TEACH={
+  rewrite:{
+    t:"Resolving the question",
+    w:"A follow-up like “what is its default value” has no subject. This stage rewrites it into a standalone question using the conversation so far.",
+    y:"It is also a <b>second entry into retrieval</b> — and one of the two places tenant isolation actually breaks, because the primary path is already correct so nobody re-checks this one.",
+  },
+  embed:{
+    t:"Question → vector",
+    w:"Your words become a list of numbers. Texts with similar meaning land near each other in that space, which is how the dense leg finds a passage that says the same thing in different words.",
+    y:"This is a <b>local ONNX model on your CPU</b>, not an API call — free, and about 15ms once loaded.",
+  },
+  retrieve_dense:{
+    t:"Dense leg · search by meaning",
+    w:"Cosine similarity between your question's vector and every chunk this tenant is allowed to see.",
+    y:"Strong on paraphrase, <b>weak on exact identifiers</b>: tokenizers smear digit runs, so <code>KLV-4021</code> and <code>KLV-4003</code> look almost identical to it. That is the failure the <code>no_lexical</code> ablation exposes.",
+  },
+  retrieve_sparse:{
+    t:"Sparse leg · search by keyword",
+    w:"BM25 — term matching weighted by how rare each term is. The exact mirror image of the dense leg: blind to paraphrase, precise about identifiers.",
+    y:"Each tenant gets <b>its own index</b>, not one shared index filtered afterwards. Post-filtering would compute term weights from documents the tenant cannot see — an access-control bug that presents as bad ranking.",
+  },
+  fuse:{
+    t:"Reciprocal Rank Fusion",
+    w:"The two legs' scores are not comparable — BM25 is unbounded, cosine is 0–1. So RRF throws the scores away and uses only <b>rank</b>: each chunk scores 1/(60+rank) per leg.",
+    y:"A chunk ranked 7th by one leg and 2nd by the other can beat one ranked 1st and 30th. That is hybrid retrieval doing its job, and it is why the numbers here are ~0.03 and meaningless to threshold on.",
+  },
+  gate:{
+    t:"The refusal decision",
+    w:"If the top retrieval score is below the threshold, the pipeline stops here and says it does not know.",
+    y:"Without it, thin context still reaches a model that will answer anyway — fluently, with citations. <b>The gate is the difference between “I don't know” and a confident fabrication.</b>",
+  },
+  rerank:{
+    t:"Reranker · the expensive second opinion",
+    w:"A model reads the question and each candidate together and rescores them — it can tell <code>KLV-4021</code> from <code>KLV-4003</code> where the dense leg could not.",
+    y:"It only fires in the <b>gray zone</b>: low top score, or a thin margin between first and second. Watch it decline — a system choosing not to spend money is the part almost no demo shows.",
+  },
+  expand:{
+    t:"Neighbour expansion",
+    w:"Pulls the chunks either side of each winner from the same document, so the model sees surrounding context instead of a sentence cut mid-argument.",
+    y:"It fetches <b>by ID</b>, which normally bypasses a filtered query — so the tenant filter is re-applied here. This is the second of the two places isolation actually breaks.",
+  },
+  generate:{
+    t:"Writing the answer",
+    w:"The model writes from the numbered sources only, citing each claim, preserving the source's hedging, refusing to fill gaps.",
+    y:"The <b>only stage that costs money</b>, and about 99% of the wall clock — retrieval above took ~30ms. It also cannot be better than what retrieval handed it: break retrieval and this stage turns the failure into a confident falsehood.",
+  },
+};
+
+/* ═══ flow diagram ═══════════════════════════════════════════════════════ */
+const FLOW=[{k:"rewrite"},{k:"embed"},{branch:["retrieve_dense","retrieve_sparse"]},
+            {k:"fuse"},{k:"gate"},{k:"rerank"},{k:"expand"},{k:"generate"}];
+const FLAT=FLOW.flatMap(s=>s.branch||[s.k]);
+const SHORT={retrieve_dense:"dense",retrieve_sparse:"sparse"};
+let STAGES={}, LIT=new Set();
+
+function nodeHtml(k){
+  const s=STAGES[k]; let cls="node", val="";
+  if(!s) cls+=" pending";
+  else if(s.running) cls+=" active";
+  else if(s.error) cls+=" bad";
+  else if(s.skipped) cls+=" skip";
+  else cls+=" ok";
+  if(s&&s.running) val="running…";
+  else if(s&&s.skipped) val="skipped";
+  else if(s){
+    const b=[`${n(s.ms,0)}ms`];
+    if(s.tokens_in||s.tokens_out) b.push(`${s.tokens_in}→${s.tokens_out}t`);
+    if(s.cache) b.push(s.cache);
+    val=b.join(" · ");
+  }
+  return `<div class="${cls}" title="${esc((s&&(s.skip_reason||s.error))||"")}">
+    <div class="nm">${esc(SHORT[k]||k)}${s&&s.skipped?" ⊘":""}</div>
+    <div class="val">${val}</div></div>`;
+}
+function renderFlow(){
+  let h='<div class="pipe">';
+  FLOW.forEach((step,i)=>{
+    if(i){
+      const prev=FLOW[i-1], from=(prev.branch||[prev.k]);
+      h+=`<div class="arrow${from.some(k=>LIT.has(k))?" lit":""}">→</div>`;
+    }
+    h+=step.branch?'<div class="branch">'+step.branch.map(nodeHtml).join("")+"</div>":nodeHtml(step.k);
+  });
+  $("#flow").innerHTML=h+"</div>";
+}
+function narrate(stage){
+  const s=STAGES[stage], t=TEACH[stage];
+  if(!t) return;
+  const el=$("#narr");
+  el.className=(s&&s.skipped)?"skipn":"";
+  let fig="";
+  if(s&&!s.running){
+    if(s.skipped&&s.skip_reason) fig=`skipped — ${esc(s.skip_reason)}`;
+    else{
+      const bits=[`${n(s.ms,1)}ms measured`];
+      if(s.tokens_in) bits.push(`${s.tokens_in} tokens in, ${s.tokens_out} out`);
+      if(s.cost_usd) bits.push(`$${s.cost_usd.toFixed(6)}`);
+      fig=bits.join(" · ");
+    }
+  }
+  el.innerHTML=`<div class="who">${esc(SHORT[stage]||stage)} — ${esc(t.t)}</div>
+    <div class="what">${t.w}</div><div class="why">${t.y}</div>
+    ${fig?`<div class="fig">${fig}</div>`:""}`;
+  // Re-trigger the entry animation on each beat.
+  el.style.animation="none"; void el.offsetWidth; el.style.animation="";
+}
+function resetFlow(){
+  STAGES={}; LIT=new Set();
+  $("#narr").className="idle";
+  $("#narr").innerHTML=`<div class="who">starting</div>
+    <div class="what">Running the pipeline…</div>`;
+  renderFlow();
+}
+
+/* ═══ setup ══════════════════════════════════════════════════════════════ */
+async function boot(){
+  try{ META=await (await fetch("/api/meta")).json(); }
+  catch(e){ $("#metaline").innerHTML='<span style="color:var(--rej)">API unreachable — is the server running?</span>'; return; }
+  $("#tenant").innerHTML=META.tenants.map(t=>
+    `<option value="${esc(t)}">${esc(t.replace(/^tenant_/,""))}</option>`).join("");
+  const featured=["no_lexical","no_semantic","no_gate","no_rerank","no_expansion",
+                  "top_k_1","no_discriminator_guard"];
+  $("#abl").innerHTML='<span class="lbl">BREAK:</span>'+META.ablations
+    .filter(a=>featured.includes(a.name))
+    .map(a=>`<label title="${esc(a.expected)}"><input type="checkbox" value="${esc(a.name)}">${esc(a.name)}</label>`).join("");
+  const sim=META.provider==="offline";
+  $("#metaline").innerHTML=
+    `<b>gen</b> ${esc(META.gen_model)} · <b>embed</b> ${esc(META.embed_model)} · `+
+    `<b>gate</b> ${esc(META.gate_reads)} @ ${esc(META.gate_threshold)} · `+
+    `<b>corpus</b> ${esc(META.corpus)} (${META.chunks} chunks) · <b>store</b> ${esc(META.vector_backend)}`+
+    (sim?' · <span class="sim">simulator — not a real model</span>':"");
+  renderFlow(); buildSuites();
+}
+const ablations=()=>$$("#abl input:checked").map(i=>i.value);
+
+$$(".tab").forEach(b=>b.onclick=()=>{
+  $$(".tab").forEach(x=>x.classList.toggle("on",x===b));
+  const v = b.dataset.view;
+  $("#ragview").style.display   = v==="rag"   ? "grid"  : "none";
+  $("#spaceview").style.display = v==="space" ? "block" : "none";
+  $("#evalview").style.display  = v==="eval"  ? "block" : "none";
+  // One renderer, two canvases. Rebind before the resize below, or the first frame is
+  // drawn at the other canvas's dimensions.
+  //
+  // Leaving eval also discards its probes. They belong to a run, not to the session:
+  // keeping them meant SPACE opened with the last suite's markers already on screen.
+  // Guarded by ERUN so switching tabs mid-run doesn't wipe a live one.
+  if(v==="space"){ if(!ERUN) svClearProbes(); svBind("space"); }
+  else if(v==="rag"){ if(!ERUN) svClearProbes(); }
+  else if(v==="eval" && $("#evalmap").classList.contains("on")) svBind("evalspace");
+  $("#flowwrap").style.display  = v==="rag"   ? "block" : "none";
+  // The query box drives both RAG and SPACE; only EVAL has nothing to ask.
+  const asks = v !== "eval";
+  ["#q","#go","#tenant"].forEach(s=>$(s).style.display = asks ? "" : "none");
+  $("#pace").style.display = v==="rag" ? "" : "none";
+  $("#abl").style.display  = v==="rag" ? "flex" : "none";
+  if(v==="space"){ svLoad().then(()=>svResize()); }
+});
+
+/* ═══ RAG ════════════════════════════════════════════════════════════════
+   The pipeline runs at full speed. Events are buffered and replayed at the
+   chosen pace, so a recording is watchable without any measurement changing. */
+async function ask(){
+  const query=$("#q").value.trim();
+  if(!query||BUSY) return;
+  const tenant_id=$("#tenant").value, abl=ablations();
+
+  // Place the query point straight away — local embedder, no tokens — so the view is
+  // never blank while the model works. The legs, gate and context that follow all come
+  // from the same trace panel A uses, so the two views cannot disagree.
+  svReset();
+  svPlaceQuery(query, tenant_id);
+
+  BUSY=true; $("#go").disabled=true; $("#go").textContent="…";
+  TRACE=null; resetFlow();
+  $("#pa").innerHTML='<div class="empty"><span class="spin">▍</span> retrieving…</div>';
+  $("#pc").innerHTML='<div class="empty">—</div>';
+  if(!abl.length) $("#pd").innerHTML='<div class="empty">No ablation selected — nothing to compare.</div>';
+
+  const buf=[]; let closed=false, failed=false;
+  const proto=location.protocol==="https:"?"wss:":"ws:";
+  let ws; try{ ws=new WebSocket(`${proto}//${location.host}/stream`); }
+  catch(e){ return fallback(query,tenant_id,abl); }
+  ws.onopen=()=>ws.send(JSON.stringify({query,tenant_id,ablations:abl,history:[]}));
+  ws.onmessage=ev=>buf.push(JSON.parse(ev.data));
+  ws.onerror=()=>{ failed=true; closed=true; };
+  ws.onclose=()=>{ closed=true; };
+
+  await replay(buf,()=>closed,pace());
+  try{ ws.close(); }catch(_){}
+  if(failed&&!TRACE) return fallback(query,tenant_id,abl);
+  if(TRACE&&abl.length) return counterfactual(query,tenant_id,abl);
+  done();
+}
+
+async function replay(buf,isClosed,ms){
+  // Drain in arrival order, pausing between beats. A beat is one visible change:
+  // a stage landing, a leg arriving, the fusion, the answer.
+  const legs={}; let i=0, answer="";
+  while(true){
+    if(i>=buf.length){
+      if(isClosed()) break;
+      await sleep(40); continue;
+    }
+    const m=buf[i++];
+    // Same events drive the 3D view, so it can never show a different retrieval than
+    // panel A does.
+    svOnEvent(m);
+    if(m.type==="stage"){
+      STAGES[m.name]={...m,running:false};
+      LIT.add(m.name);
+      const nxt=FLAT[FLAT.indexOf(m.name)+1];
+      if(nxt&&!STAGES[nxt]) STAGES[nxt]={name:nxt,running:true};
+      renderFlow(); narrate(m.name);
+      if(ms) await sleep(m.skipped?ms*0.75:ms);
+    }
+    else if(m.type==="candidates"){
+      legs[m.leg]=m.items; renderLegs(legs,null);
+      if(ms) await sleep(ms*0.5);
+    }
+    else if(m.type==="fused"){
+      renderLegs(legs,m);
+      if(ms) await sleep(ms*0.6);
+    }
+    else if(m.type==="answer_delta"){
+      answer+=m.text;
+      $("#pc").innerHTML=`<div id="ans" class="typing">${esc(answer)}</div>`;
+    }
+    else if(m.type==="error"){ $("#pc").innerHTML=`<div class="err">${esc(m.message)}</div>`; return; }
+    else if(m.type==="done"){ TRACE=m.trace; renderAll(m.trace); return; }
+  }
+}
+
+async function fallback(query,tenant_id,abl){
+  if(TRACE) return;
+  try{
+    const r=await fetch("/api/query",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({query,tenant_id,ablations:abl,history:[]})});
+    if(!r.ok) throw new Error((await r.text()).slice(0,400));
+    TRACE=await r.json();
+    // No stream to pace, so walk the finished trace at the chosen speed instead.
+    const ms=pace();
+    for(const s of TRACE.stages){
+      STAGES[s.name]={...s,running:false}; LIT.add(s.name);
+      renderFlow(); narrate(s.name);
+      if(ms) await sleep(s.skipped?ms*0.75:ms);
+    }
+    renderAll(TRACE);
+    if(abl.length) return counterfactual(query,tenant_id,abl);
+  }catch(e){ $("#pc").innerHTML=`<div class="err">${esc(e.message||e)}</div>`; }
+  done();
+}
+
+async function counterfactual(query,tenant_id,abl){
+  $("#pd").innerHTML=`<div class="empty"><span class="spin">▍</span> re-running without ${esc(abl.join(" + "))}…</div>`;
+  try{
+    const r=await fetch("/api/counterfactual",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({query,tenant_id,ablations:abl,history:[]})});
+    if(!r.ok) throw new Error((await r.text()).slice(0,400));
+    renderDiff(await r.json(),abl);
+  }catch(e){ $("#pd").innerHTML=`<div class="err">${esc(e.message||e)}</div>`; }
+  done();
+}
+function done(){ BUSY=false; $("#go").disabled=false; $("#go").textContent="ASK"; }
+
+/* ── candidates ──────────────────────────────────────────────────────── */
+function candRow(c,o={}){
+  const cls=["cand"];
+  if(o.won) cls.push("won");
+  if(c.rejected_by) cls.push("rej");
+  if(c.inclusion_reason==="neighbor_expansion") cls.push("exp");
+  const why=c.rejected_by?` · rejected by ${c.rejected_by}`:c.inclusion_reason?` · ${c.inclusion_reason}`:"";
+  const txt=c.text||"";
+  return `<div class="${cls.join(" ")}" data-chunk="${esc(c.chunk_id)}" style="animation-delay:${(o.i||0)*35}ms"
+      title="${esc(c.doc_id)}${why}" onclick="this.classList.toggle('open')">
+      <span class="r">${o.rank??""}</span><span class="id">${esc(c.chunk_id)}</span>
+      <span class="s">${o.score??""}</span></div>
+    <div class="body">${esc(txt.slice(0,420))}${txt.length>420?"…":""}</div>`;
+}
+function legHtml(items,kind,rk,sk,d){
+  const r=items.filter(c=>c[rk]!=null).sort((a,b)=>a[rk]-b[rk]);
+  const head=r.slice(0,SHOWN).map((c,i)=>candRow(c,{rank:c[rk],score:n(c[sk],d),i})).join("");
+  const rest=r.length-SHOWN;
+  return `<div class="leg ${kind}"><h3>${kind==="lex"?"lexical · bm25":"semantic · cosine"}</h3>
+    ${head||'<div class="empty">— leg ablated —</div>'}
+    ${rest>0?`<div class="more">+${rest} more</div>`:""}</div>`;
+}
+function renderLegs(legs,fused){
+  let h=`<div class="legs">
+    ${legHtml(legs.lexical||[],"lex","lexical_rank","lexical_score",2)}
+    ${legHtml(legs.semantic||[],"sem","semantic_rank","semantic_score",3)}</div>`;
+  if(fused){
+    const r=(fused.items||[]).filter(c=>c.fused_rank!=null).sort((a,b)=>a.fused_rank-b.fused_rank);
+    const pass=r.filter(c=>!c.rejected_by).slice(0,SHOWN), rej=r.filter(c=>c.rejected_by).slice(0,4);
+    h+=`<div class="fan">↘ ↙</div><div class="leg fus"><h3>fused · rrf k=60</h3>
+      ${pass.map((c,i)=>candRow(c,{rank:c.fused_rank,score:n(c.fused_score,4),won:i===0,i})).join("")}
+      ${fused.gate!=null?`<div class="gate"><span>gate</span><span class="ln"></span>
+        <span>${esc(fused.gate_reads||"")} ${n(fused.gate_value,2)} vs ${n(fused.gate,2)}</span></div>`:""}
+      ${rej.map((c,i)=>candRow(c,{rank:c.fused_rank,score:n(c.fused_score,4),i})).join("")}</div>`;
+  }
+  $("#pa").innerHTML=h; wireHover();
+}
+
+/* ── answer ──────────────────────────────────────────────────────────── */
+function renderAnswer(t){
+  const a=t.answer, text=a.text||""; let h="", cur=0;
+  for(const sp of (a.spans||[]).slice().sort((x,y)=>x.start-y.start)){
+    if(sp.start>cur) h+=esc(text.slice(cur,sp.start));
+    const ids=sp.chunk_ids||[];
+    h+=`<span class="sp" data-ok="${!!sp.supported}" data-chunks="${esc(ids.join(","))}"
+      title="${ids.length?"source: "+esc(ids.join(", ")):"no supporting chunk"}"
+      >${esc(text.slice(sp.start,sp.end))}</span>`;
+    cur=sp.end;
+  }
+  h+=esc(text.slice(cur));
+  const bad=(a.spans||[]).filter(s=>!s.supported).length;
+  $("#pc").innerHTML=`<div class="pills">
+      <span class="pill ${esc(a.status)}">${esc(a.status)}</span>
+      ${a.hedged?'<span class="pill">hedged</span>':""}
+      <span class="pill">${(a.citations||[]).length} cited</span>
+      <span class="pill">${(t.candidates||[]).filter(c=>c.in_context).length} in context</span></div>
+    <div id="ans">${h||'<span class="empty">—</span>'}</div>
+    ${bad?`<div class="warnline">⚠ ${bad} sentence${bad>1?"s":""} with no supporting chunk — flagged, not hidden</div>`:""}`;
+  wireHover();
+}
+function wireHover(){
+  $$("#ans .sp").forEach(el=>{
+    const ids=(el.dataset.chunks||"").split(",").filter(Boolean);
+    el.onmouseenter=()=>ids.forEach(id=>$$(`.cand[data-chunk="${id}"]`).forEach(c=>c.classList.add("hl")));
+    el.onmouseleave=()=>$$(".cand.hl").forEach(c=>c.classList.remove("hl"));
+  });
+}
+
+/* ── counterfactual ──────────────────────────────────────────────────── */
+function renderDiff(d,abl){
+  const moved=Object.entries(d.rank_delta||{}).filter(([,v])=>v).slice(0,6);
+  $("#pd-hint").textContent="";
+  $("#pd").innerHTML=`<span class="out o-${esc(d.outcome)}">${esc(d.outcome.replace(/_/g," "))}</span>
+    <div class="diff">
+      <div class="side b"><h3>baseline · whole pipeline</h3><div class="t">${esc(d.baseline.answer.text)}</div></div>
+      <div class="side v"><h3>broken · ${esc(abl.join(" + "))}</h3><div class="t">${esc(d.variant.answer.text)}</div></div>
+    </div>
+    <div class="expl">${esc(d.explanation)}</div>
+    ${moved.length?`<div class="expl"><b>rank moves:</b> `+moved.map(([id,dl])=>
+      `${esc(id.slice(0,10))} ${dl>0?"↓":"↑"}${Math.abs(dl)}`).join(" · ")+`</div>`:""}
+    ${(d.dropped_from_context||[]).length?`<div class="expl" style="color:var(--rej)">
+      dropped from context: ${esc(d.dropped_from_context.map(s=>s.slice(0,10)).join(", "))}</div>`:""}`;
+}
+
+function renderAll(t){
+  const g=t.stages.find(s=>s.name==="gate")||{};
+  t.stages.forEach(s=>{ STAGES[s.name]={...s,running:false}; LIT.add(s.name); });
+  renderFlow();
+  renderLegs({lexical:t.candidates,semantic:t.candidates},
+    {items:t.candidates,gate:(g.detail||{}).threshold,gate_reads:(g.detail||{}).reads,
+     gate_value:(g.detail||{}).value});
+  renderAnswer(t);
+  const tt=t.totals;
+  $("#narr").className="";
+  $("#narr").innerHTML=`<div class="who">done</div>
+    <div class="what">${esc(tt.llm_calls)} model call${tt.llm_calls===1?"":"s"} ·
+      ${n(tt.ms,0)}ms end to end · $${(tt.cost_usd||0).toFixed(6)}</div>
+    <div class="why">Retrieval took about
+      ${n(t.stages.filter(s=>["retrieve_dense","retrieve_sparse","fuse","gate","expand"].includes(s.name))
+            .reduce((a,s)=>a+(s.ms||0),0),0)}ms of that. Nearly all the rest is the model
+      writing — and it can only be as good as what retrieval handed it.</div>`;
+  let hint=`${t.candidates.length} candidates · trace ${t.trace_id.slice(0,8)}`;
+  if(t.rewritten_query&&t.rewritten_query!==t.query) hint+=` · rewritten: "${t.rewritten_query}"`;
+  $("#pa-hint").textContent=hint;
+}
+
+/* ═══ 3D EMBEDDING SPACE ══════════════════════════════════════════════════
+   449 points of 384-dimensional space, projected to 3 by PCA server-side and
+   drawn with a hand-rolled projection on a 2D canvas. No Three.js, no WebGL,
+   no CDN — the page stays a single self-contained file that works offline.
+
+   The honesty problem this view creates: 3 axes hold 36.8% of the variance, so
+   two points that look adjacent on screen may be far apart in the space the
+   retriever actually searches. The HUD states that figure rather than letting
+   the picture imply more precision than it has.                            */
+const SV = {
+  pts: [], meta: null, ready: false,
+  yaw: 0.6, pitch: -0.25, dist: 2.6, drag: null, spin: true,
+  active: null,        // {x,y,z} query point
+  links: [],           // {to, leg, cosine, t} animated beams
+  ctx: [],             // chunk_ids that reached the model
+  llmT: 0,             // 0..1 progress of the chunks -> model beams
+  ansT: 0,             // 0..1 progress of the model -> answer beam
+  thinking: false,
+  marks: [],           // persistent eval probes: {x,y,z,outcome,case_id,t}
+  cid: "space",        // which canvas to draw into
+  t0: performance.now(),
+  raf: null,
+};
+const svEl = () => document.getElementById(SV.cid);
+function svBind(id){ SV.cid = id; if(SV.ready) svResize(); }
+/** Drop every eval probe and put the map away. Called when a run starts, when a suite
+ *  has nothing to plot, and when the eval tab is left — a marker outliving the run that
+ *  produced it is the one thing this view must never do. */
+function svClearProbes(){
+  SV.marks = [];
+  SV.pts.forEach(p=>p.lit=0);
+  const m = document.getElementById("evalmap");
+  if(m) m.classList.remove("on");
+}
+//: Outcome colours for eval markers. Green is not "passed" — it is "the system was
+//: honest". A wrong answer that flags itself is survivable; the red is the one that
+//: matters, and it should be the only thing that reads as alarming.
+const OUTCOME_COLOR = {
+  correct: "#4ec9b0", wrong_flagged: "#d9a441", wrong_confident: "#d05f5f",
+};
+//: The model sits outside the corpus cloud, which spans roughly [-1,1] on each axis.
+const LLM_POS = {x: 2.35, y: -0.75, z: 0};
+const LEG_COLOR = {lexical: "#d05f5f", semantic: "#bb9af7", both: "#4ec9b0"};
+const TENANT_COLOR = {
+  tenant_kelvin: "#7aa2f7", tenant_atlas: "#bb9af7",
+  tenant_vela:   "#e0af68", tenant_global: "#5c6773",
+};
+
+async function svLoad(){
+  if(SV.ready) return;
+  try{
+    const r = await fetch("/api/embedding/projection");
+    if(!r.ok){
+      const d = await r.json().catch(()=>({detail:"unavailable"}));
+      $("#sv-meta").innerHTML = `<span style="color:var(--warn)">${esc(d.detail||"unavailable")}</span>`;
+      return;
+    }
+    const b = await r.json();
+    SV.pts = b.points.map(p=>({...p, base:TENANT_COLOR[p.tenant_id]||"#5c6773", lit:0}));
+    SV.meta = b; SV.ready = true;
+
+    const ev = b.explained_variance.map(v=>`${(v*100).toFixed(1)}%`).join(" / ");
+    $("#sv-meta").innerHTML =
+      `${b.count} chunks · ${b.dim}-d <b>${esc(b.model_id)}</b> projected to 3 by PCA`;
+    $("#sv-legend").innerHTML = b.tenants.map(t=>{
+      const n = b.points.filter(p=>p.tenant_id===t).length;
+      return `<div><i style="background:${TENANT_COLOR[t]||"#5c6773"}"></i>${esc(t.replace("tenant_",""))} · ${n}</div>`;
+    }).join("");
+    $("#sv-note").innerHTML =
+      `axes hold <b>${ev}</b> of the variance — ${(b.explained_total*100).toFixed(1)}% total.<br>` +
+      `The other ${(100-b.explained_total*100).toFixed(0)}% is not on screen, so screen distance is a hint, not the metric. ` +
+      `Retrieval ranks by cosine in all ${b.dim} dimensions.`;
+    svResize(); svTick();
+  }catch(e){ $("#sv-meta").textContent = "projection unavailable"; }
+}
+
+function svResize(){
+  const c = svEl(), r = c.getBoundingClientRect(), dpr = devicePixelRatio||1;
+  c.width = Math.max(1, r.width*dpr); c.height = Math.max(1, r.height*dpr);
+}
+
+function svProject(p, W, H){
+  // Yaw then pitch, then a simple perspective divide. Cheap and stable.
+  const cy=Math.cos(SV.yaw), sy=Math.sin(SV.yaw), cp=Math.cos(SV.pitch), sp=Math.sin(SV.pitch);
+  const x1 = p.x*cy - p.z*sy, z1 = p.x*sy + p.z*cy;
+  const y1 = p.y*cp - z1*sp,  z2 = p.y*sp + z1*cp;
+  const d  = SV.dist - z2;
+  if(d <= 0.15) return null;
+  // `f` converts world units to device pixels at this depth. Return it directly rather
+  // than a normalised ratio — dividing by min(W,H) here and multiplying by a different
+  // constant at the call site is what produced 335px "points" and a single purple blob.
+  const f = Math.min(W,H) * 0.85 / d;
+  return {sx: W/2 + x1*f, sy: H/2 - y1*f, depth: z2, f};
+}
+
+function svTick(){
+  const c = svEl(), ctx = c.getContext("2d"), W = c.width, H = c.height;
+  const now = performance.now(), dt = (now - SV.t0)/1000; SV.t0 = now;
+  if(SV.spin && !SV.drag) SV.yaw += dt*0.09;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Depth-sorted painter's algorithm: far points first so near ones overlap them.
+  const drawn = [];
+  for(const p of SV.pts){
+    const s = svProject(p, W, H);
+    if(!s) continue;
+    drawn.push({p, s});
+  }
+  drawn.sort((a,b)=>a.s.depth - b.s.depth);
+
+  const dim = SV.active ? 0.13 : 1;
+  for(const {p,s} of drawn){
+    const near = (s.depth + 1.4) / 2.8;                 // 0 far … 1 near
+    // A chunk is a ~0.012-world-unit dot. Clamped at both ends: the floor keeps distant
+    // points visible, the ceiling means a future arithmetic slip degrades to "dots
+    // slightly too big" instead of one opaque disc covering the screen.
+    const r = Math.min(9, Math.max(0.9, 0.012 * s.f)) * (0.55 + near*0.75);
+    const a = (0.16 + near*0.5) * (p.lit ? 1 : dim);
+    ctx.beginPath(); ctx.arc(s.sx, s.sy, r * (p.lit ? 1.9 : 1), 0, 6.2832);
+    ctx.fillStyle = p.lit ? "#4ec9b0" : p.base;
+    ctx.globalAlpha = p.lit ? Math.min(1, 0.55 + p.lit*0.45) : a;
+    if(p.lit){ ctx.shadowColor = "#4ec9b0"; ctx.shadowBlur = 16 * p.lit; }
+    ctx.fill(); ctx.shadowBlur = 0;
+  }
+  ctx.globalAlpha = 1;
+
+  // ── eval probes: one persistent marker per trap, coloured by outcome ──────
+  // They accumulate instead of replacing each other, so a finished run is a map of
+  // *where* the system fails rather than a count of how often.
+  //
+  // Scoped to the eval canvas. One renderer serves two canvases, so without this guard
+  // a finished eval run bleeds its markers into SPACE and overlaps the query beams.
+  // Belt-and-braces with the clears in svReset()/svClearProbes(): a forgotten clear
+  // somewhere else can no longer draw the wrong view.
+  for(const mk of (SV.cid === "evalspace" ? SV.marks : [])){
+    mk.t = Math.min(1, mk.t + dt*2.2);
+    const s = svProject(mk, W, H);
+    if(!s) continue;
+    const col = OUTCOME_COLOR[mk.outcome] || "#6d7885";
+    const bad = mk.outcome === "wrong_confident";
+    const grow = 1 - Math.pow(1 - mk.t, 3);
+    // Only the silent failures keep pulsing. A static marker for the one outcome that
+    // actually matters would read as "handled".
+    const pulse = bad ? 1 + 0.28*Math.sin(now/230) : 1;
+    const r = (bad ? 6.5 : 4.0) * grow * pulse;
+
+    ctx.beginPath(); ctx.arc(s.sx, s.sy, r, 0, 6.2832);
+    ctx.fillStyle = col; ctx.globalAlpha = 0.92;
+    ctx.shadowColor = col; ctx.shadowBlur = bad ? 20 : 7;
+    ctx.fill(); ctx.shadowBlur = 0;
+
+    ctx.beginPath(); ctx.arc(s.sx, s.sy, r + 7*grow*pulse, 0, 6.2832);
+    ctx.strokeStyle = col; ctx.globalAlpha = bad ? 0.55 : 0.22; ctx.lineWidth = 1;
+    ctx.stroke(); ctx.globalAlpha = 1;
+
+    if(bad && mk.t >= 1){
+      ctx.font = "10px ui-monospace,monospace"; ctx.textAlign = "center";
+      ctx.fillStyle = col;
+      ctx.fillText(mk.case_id.replace(/_/g, " "), s.sx, s.sy - r - 11);
+      ctx.textAlign = "start";
+    }
+  }
+
+  // ── the pipeline, drawn in the space the retriever actually works in ──────
+  if(SV.active){
+    const q = svProject(SV.active, W, H);
+    const llm = svProject(LLM_POS, W, H);
+
+    if(q){
+      // 1. query → chunks, one beam per retrieval leg
+      for(const link of SV.links){
+        link.t = Math.min(1, link.t + dt*1.7);
+        if(link.t <= 0) continue;
+        const tgt = SV.pts.find(p=>p.chunk_id===link.to);
+        if(!tgt) continue;
+        const s = svProject(tgt, W, H);
+        if(!s) continue;
+        const ex = q.sx + (s.sx-q.sx)*link.t, ey = q.sy + (s.sy-q.sy)*link.t;
+
+        const alpha = 0.20 + 0.60*Math.max(0,(link.cosine-0.5)/0.4);
+        // Both legs get drawn, always — a chunk found by both is a violet line with red
+        // dashes over it, not a third colour. Merging them into one hue hid the single
+        // most important fact about an identifier query: that BM25 pinned it exactly.
+        // The two legs fail differently, so the picture should never imply one signal.
+        if(link.leg === "semantic" || link.leg === "both"){
+          ctx.beginPath(); ctx.moveTo(q.sx,q.sy); ctx.lineTo(ex,ey);
+          ctx.strokeStyle = LEG_COLOR.semantic; ctx.setLineDash([]);
+          ctx.globalAlpha = alpha; ctx.lineWidth = 1.2; ctx.stroke();
+        }
+        if(link.leg === "lexical" || link.leg === "both"){
+          ctx.beginPath(); ctx.moveTo(q.sx,q.sy); ctx.lineTo(ex,ey);
+          ctx.strokeStyle = LEG_COLOR.lexical; ctx.setLineDash([7,6]);
+          ctx.globalAlpha = Math.min(1, alpha + 0.25); ctx.lineWidth = 1.8; ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        if(link.t >= 1){ tgt.lit = Math.min(1, (tgt.lit||0) + dt*3); }
+        else {
+          ctx.beginPath(); ctx.arc(ex,ey,2.4,0,6.2832);
+          ctx.fillStyle = LEG_COLOR[link.leg] || "#9ef5e3";
+          ctx.globalAlpha = .95; ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      // 2. surviving chunks → the model
+      if(llm && SV.ctx.length){
+        SV.llmT = Math.min(1, SV.llmT + dt*1.1);
+        for(const cid of SV.ctx){
+          const tgt = SV.pts.find(p=>p.chunk_id===cid);
+          if(!tgt) continue;
+          const s = svProject(tgt, W, H);
+          if(!s) continue;
+          const ex = s.sx + (llm.sx-s.sx)*SV.llmT, ey = s.sy + (llm.sy-s.sy)*SV.llmT;
+          ctx.beginPath(); ctx.moveTo(s.sx,s.sy); ctx.lineTo(ex,ey);
+          ctx.strokeStyle = "#e0af68"; ctx.globalAlpha = .55; ctx.lineWidth = 1.4;
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // 3. the model node
+      if(llm){
+        const busy = SV.thinking;
+        const pulse = busy ? 1 + 0.18*Math.sin(now/160) : 1;
+        const r = 13 * pulse;
+        ctx.beginPath();
+        for(let i=0;i<6;i++){                       // hexagon: not a chunk, not a query
+          const a = Math.PI/6 + i*Math.PI/3;
+          ctx[i?"lineTo":"moveTo"](llm.sx + r*Math.cos(a), llm.sy + r*Math.sin(a));
+        }
+        ctx.closePath();
+        ctx.fillStyle = busy ? "#2a2113" : "#13251f";
+        ctx.strokeStyle = busy ? "#e0af68" : "#4ec9b0";
+        ctx.lineWidth = 1.6;
+        ctx.shadowColor = busy ? "#e0af68" : "#4ec9b0"; ctx.shadowBlur = busy ? 22 : 10;
+        ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
+
+        ctx.font = "10px ui-monospace,monospace"; ctx.textAlign = "center";
+        ctx.fillStyle = busy ? "#e0af68" : "#4ec9b0";
+        ctx.fillText(busy ? "generating…" : "model", llm.sx, llm.sy + r + 14);
+        ctx.textAlign = "start";
+
+        // 4. model → the answer box, anchored in the corner
+        if(SV.ansT > 0){
+          SV.ansT = Math.min(1, SV.ansT + dt*1.6);
+          const ax = W - 150, ay = H - 90;
+          const ex = llm.sx + (ax-llm.sx)*SV.ansT, ey = llm.sy + (ay-llm.sy)*SV.ansT;
+          ctx.beginPath(); ctx.moveTo(llm.sx,llm.sy); ctx.lineTo(ex,ey);
+          ctx.strokeStyle="#4ec9b0"; ctx.globalAlpha=.5; ctx.lineWidth=1.6;
+          ctx.setLineDash([]); ctx.stroke(); ctx.globalAlpha=1;
+        }
+      }
+
+      // 5. the query itself, drawn last so nothing covers it
+      const pulse = 1 + 0.22*Math.sin(now/220);
+      ctx.beginPath(); ctx.arc(q.sx,q.sy, 6.5*pulse, 0, 6.2832);
+      ctx.fillStyle="#eafff9"; ctx.shadowColor="#4ec9b0"; ctx.shadowBlur=26; ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.beginPath(); ctx.arc(q.sx,q.sy, 15*pulse, 0, 6.2832);
+      ctx.strokeStyle="#4ec9b0"; ctx.globalAlpha=.35; ctx.lineWidth=1; ctx.stroke();
+      ctx.globalAlpha=1;
+      ctx.font="10px ui-monospace,monospace"; ctx.textAlign="center";
+      ctx.fillStyle="#9ef5e3"; ctx.fillText("your question", q.sx, q.sy - 22);
+      ctx.textAlign="start";
+    }
+  }
+  SV.raf = requestAnimationFrame(svTick);
+}
+
+function svReset(){
+  SV.pts.forEach(p=>p.lit=0);
+  SV.links=[]; SV.ctx=[]; SV.llmT=0; SV.ansT=0; SV.thinking=false; SV.active=null;
+  // A new question owns the scene. Eval markers left over from a suite run would sit
+  // under the retrieval beams and read as part of this query's result.
+  SV.marks=[];
+  $("#sv-answer").className="sv-answer";
+  $("#sv-readout").innerHTML="";
+  $("#sv-key").style.display="none";
+  $("#sv-stages").innerHTML="";
+}
+
+/** Place the query point. Embedding only — local ONNX, no model call, no tokens, so
+ *  this lands long before the pipeline finishes and the view is never blank. */
+async function svPlaceQuery(query, tenant){
+  if(!SV.ready) await svLoad();
+  if(!SV.ready) return;
+  try{
+    const r = await fetch(`/api/embedding?q=${encodeURIComponent(query)}`
+                        + `&tenant_id=${encodeURIComponent(tenant)}&k=1`);
+    if(!r.ok) return;
+    const b = await r.json();
+    if(b.projection){ SV.active = b.projection; SV.thinking = true; }
+  }catch(e){ /* the view is decorative; never break a query on it */ }
+}
+
+const SV_STAGES = ["rewrite","embed","retrieve_dense","retrieve_sparse","fuse","gate",
+                   "rerank","expand","generate"];
+const SV_SHORT = {retrieve_dense:"dense", retrieve_sparse:"sparse"};
+
+function svStageStrip(){
+  $("#sv-stages").innerHTML = SV_STAGES.filter(k=>STAGES[k]).map(k=>{
+    const s = STAGES[k];
+    const cls = s.running ? "run" : s.skipped ? "skip" : "ok";
+    return `<span class="${cls}" title="${esc(s.skip_reason||"")}">${esc(SV_SHORT[k]||k)}${
+      s.skipped ? " ⊘" : ""}</span>`;
+  }).join("");
+}
+
+/** Drive the 3D view from the real trace events, so it shows what actually happened
+ *  rather than a second, prettier retrieval that might disagree with panel A. */
+function svOnEvent(m){
+  if(m.type === "stage"){
+    svStageStrip();
+    if(m.name === "generate") SV.thinking = false;
+  }
+  else if(m.type === "candidates"){
+    // A chunk found by both legs gets one beam, coloured to say so — that agreement is
+    // the whole argument for hybrid retrieval and deserves its own colour.
+    const rankKey = m.leg === "lexical" ? "lexical_rank" : "semantic_rank";
+    const scoreKey = m.leg === "lexical" ? "lexical_score" : "semantic_score";
+    m.items.slice(0, 12).forEach((it, i) => {
+      const existing = SV.links.find(l => l.to === it.chunk_id);
+      const cos = m.leg === "semantic" ? (it[scoreKey] ?? 0.6)
+                                       : Math.min(0.95, 0.55 + (it[scoreKey] ?? 0)/12);
+      if(existing){ existing.leg = "both"; existing.cosine = Math.max(existing.cosine, cos); }
+      else SV.links.push({to: it.chunk_id, leg: m.leg, cosine: cos, t: -i*0.09});
+    });
+  }
+  else if(m.type === "fused"){
+    const rej = m.items.filter(i=>i.rejected_by).map(i=>i.chunk_id);
+    for(const id of rej){ const l = SV.links.find(x=>x.to===id); if(l) l.cosine = 0.5; }
+  }
+  else if(m.type === "done"){
+    const t = m.trace;
+    SV.ctx = t.candidates.filter(c=>c.in_context).map(c=>c.chunk_id);
+    SV.thinking = false;
+    SV.ansT = 0.01;
+    svStageStrip();
+    $("#sv-key").style.display = "flex";
+
+    const a = t.answer;
+    $("#sv-answer").className = "sv-answer on";
+    $("#sv-answer").innerHTML =
+      `<div class="hd"><span class="pill ${esc(a.status)}">${esc(a.status)}</span>
+         ${a.hedged?'<span class="pill">hedged</span>':""}
+         <span class="pill">${(a.citations||[]).length} cited</span></div>
+       <div class="txt">${esc(a.text)}</div>
+       <div class="ft">${SV.ctx.length} of ${t.candidates.length} candidates reached the
+         model · ${t.totals.llm_calls} call · ${Math.round(t.totals.ms)}ms ·
+         ${t.totals.tokens_in}→${t.totals.tokens_out} tok</div>`;
+
+    // Report what each leg *returned*, not what it returned exclusively. "lexical only:
+    // 0" reads as "BM25 found nothing" when the truth can be "BM25 found exactly the
+    // right chunk and semantic happened to agree" — the opposite conclusion.
+    const lex  = t.candidates.filter(c=>c.lexical_rank  != null).length;
+    const sem  = t.candidates.filter(c=>c.semantic_rank != null).length;
+    const both = t.candidates.filter(c=>c.lexical_rank != null && c.semantic_rank != null).length;
+    const top  = t.candidates.find(c=>c.final_rank === 1);
+    const wonBy = !top ? "—"
+      : (top.lexical_rank != null && top.semantic_rank != null) ? "both legs"
+      : top.lexical_rank != null ? "lexical" : "semantic";
+    $("#sv-readout").innerHTML =
+      `<div class="q">"${esc(t.query)}"</div>` +
+      `<div class="row"><b>lexical leg returned</b><span class="c">${lex}</span></div>` +
+      `<div class="row" style="animation-delay:80ms"><b>semantic leg returned</b><span class="c">${sem}</span></div>` +
+      `<div class="row" style="animation-delay:160ms"><b>found by both</b><span class="c">${both}</span></div>` +
+      `<div class="row" style="animation-delay:240ms"><b>rank 1 came from</b><span class="c">${wonBy}</span></div>` +
+      `<div class="row" style="animation-delay:320ms;color:var(--dimmer)"><b>reached the model</b>
+         <span class="c">${SV.ctx.length}</span></div>`;
+  }
+}
+
+(function svInput(){
+  // Delegated to the document rather than bound to one canvas: the renderer targets
+  // whichever canvas is visible, and handlers attached at load time would stay stuck to
+  // the first one — drag and zoom would silently stop working on the other view.
+  const isCanvas = t => t instanceof HTMLCanvasElement && (t.id==="space" || t.id==="evalspace");
+  document.addEventListener("mousedown", e=>{
+    if(!isCanvas(e.target)) return;
+    SV.drag={x:e.clientX,y:e.clientY}; SV.spin=false;
+  });
+  addEventListener("mouseup", ()=>{ SV.drag=null; });
+  addEventListener("mousemove", e=>{
+    if(!SV.drag) return;
+    SV.yaw   += (e.clientX-SV.drag.x)*0.006;
+    SV.pitch  = Math.max(-1.4, Math.min(1.4, SV.pitch + (e.clientY-SV.drag.y)*0.006));
+    SV.drag={x:e.clientX,y:e.clientY};
+  });
+  document.addEventListener("wheel", e=>{
+    if(!isCanvas(e.target)) return;
+    e.preventDefault();
+    SV.dist = Math.max(1.5, Math.min(7, SV.dist + Math.sign(e.deltaY)*0.22));
+  }, {passive:false});
+  addEventListener("resize", ()=>{ if(SV.ready) svResize(); });
+})();
+
+/* ═══ EVAL ═══════════════════════════════════════════════════════════════ */
+let EWS=null, ERUN=false;
+function buildSuites(){
+  $("#suites").innerHTML=`
+    <div class="card"><h3>tenant isolation</h3>
+      <p>12 probes against a planted competing-documents corpus. Every tenant holds a
+      document on the same topic with different values plus a per-run random canary, so the
+      foreign document is a <em>strong</em> retrieval candidate and the boundary is the only
+      thing holding. Two positive controls run first — without them, a system that returns
+      nothing to anyone passes every leak probe.</p>
+      <button class="run" data-suite="isolation">RUN 12 PROBES</button>
+      <div class="cost" id="cost-isolation"></div></div>
+    <div class="card"><h3>silent failure</h3>
+      <p>Traps whose answers do not exist in the corpus. Scores
+      <em>wrong-and-confident</em> rather than accuracy: a system that is 70% right and flags
+      its uncertainty is deployable, one that is 85% right and never flags anything is not.
+      That inversion is the finding.</p>
+      <button class="run" data-suite="silent_failure">RUN TRAPS</button>
+      <div class="cost" id="cost-silent_failure"></div></div>`;
+  $$(".card .run").forEach(b=>b.onclick=()=>startEval(b.dataset.suite));
+}
+function startEval(suite){
+  if(ERUN) return;
+  const proto=location.protocol==="https:"?"wss:":"ws:";
+  EWS=new WebSocket(`${proto}//${location.host}/eval/stream`);
+  let total=0,pass=0,fail=0,rows="";
+  const paint=()=>{
+    const d=pass+fail, pct=total?100/total:0;
+    $("#evalout").innerHTML=`<div class="tally">
+        <div class="p"><b>${pass}</b>passed</div><div class="f"><b>${fail}</b>failed</div>
+        <div class="r"><b>${d}/${total||"?"}</b>${ERUN?"running":"complete"}</div></div>
+      <div class="bar"><i class="okb" style="width:${pass*pct}%"></i><i class="badb" style="width:${fail*pct}%"></i></div>
+      ${rows}${ERUN?'<div class="empty"><span class="spin">▍</span> running…</div>':""}`;
+  };
+  EWS.onopen=()=>EWS.send(JSON.stringify({suite,confirm:false}));
+  EWS.onmessage=async ev=>{
+    const m=JSON.parse(ev.data);
+    if(m.type==="estimate"){
+      const el=$("#cost-"+m.suite);
+      el.className="cost"+(m.free?" free":"");
+      el.textContent=`${m.probes} probes · ~${m.est_tokens.toLocaleString()} tokens · `+
+        (m.free?`provider ${m.provider} — free`:`provider ${m.provider} — this costs money`);
+      EWS.send(JSON.stringify({suite:m.suite,confirm:true}));
+    }
+    else if(m.type==="started"){
+      ERUN=true; total=m.probes; $$(".card .run").forEach(b=>b.disabled=true); paint();
+      // The map only means anything for suites that run against the real corpus. The
+      // isolation suite builds its own ephemeral one, which has no projection here, so
+      // it would draw an empty box that looks broken.
+      SV.active = null; SV.links = []; SV.ctx = []; SV.llmT = 0; SV.ansT = 0;
+      if(m.suite === "silent_failure"){
+        svClearProbes();
+        $("#evalmap").classList.add("on");
+        $("#em-sub").textContent = "each probe placed where its question lands in the corpus";
+        svBind("evalspace");
+        svLoad().then(()=>svResize());
+      } else {
+        // Isolation builds its own ephemeral corpus, so its probes have no coordinates in
+        // *this* projection. Clearing is not cosmetic: leaving the previous suite's map up
+        // would attribute the last run's failures to this one.
+        svClearProbes();
+      }
+    }
+    else if(m.type==="finding"){
+      m.passed?pass++:fail++;
+      const mt = m.meta || {};
+      if(mt.projection){
+        SV.marks.push({...mt.projection, outcome: mt.outcome_class,
+                       case_id: m.case_id, t: 0});
+        // Light the chunks this probe actually put in front of the model, so a silent
+        // failure shows which evidence it had while getting it wrong.
+        for(const cid of (mt.context_chunk_ids || [])){
+          const p = SV.pts.find(x=>x.chunk_id===cid);
+          if(p) p.lit = Math.max(p.lit||0, mt.outcome_class==="wrong_confident" ? 1 : 0.45);
+        }
+        const bad = SV.marks.filter(x=>x.outcome==="wrong_confident").length;
+        $("#em-sub").innerHTML = `${SV.marks.length} probes placed · ` +
+          (bad ? `<b style="color:var(--rej)">${bad} wrong &amp; confident</b>`
+               : `<b style="color:var(--win)">none silent yet</b>`);
+      }
+      const ctl=m.case_id.startsWith("positive_control");
+      rows+=`<div class="find ${m.passed?"pass":"fail"}${ctl?" ctl":""}">
+        <div class="hd"><span class="mark">${m.passed?"PASS":"FAIL"}</span>
+          <span class="cid">${esc(m.case_id)}</span><span class="sev">${esc(m.severity)}</span></div>
+        <div class="det">${esc(m.detail)}</div>
+        ${(m.evidence||[]).length?`<div class="ev">${esc(m.evidence.slice(0,4).join("\n"))}</div>`:""}</div>`;
+      paint();
+      // Pace the eval too, so a recording of it is readable.
+      const p=pace(); if(p) await sleep(Math.min(700,p*0.45));
+    }
+    else if(m.type==="summary"){ total=m.total; }
+    else if(m.type==="error"){ rows+=`<div class="err">${esc(m.message)}</div>`; paint(); }
+    else if(m.type==="done"){ ERUN=false; $$(".card .run").forEach(b=>b.disabled=false); paint(); try{EWS.close();}catch(_){} }
+  };
+  EWS.onerror=()=>{ ERUN=false; $$(".card .run").forEach(b=>b.disabled=false);
+    $("#evalout").innerHTML='<div class="err">eval socket failed</div>'; };
+}
+
+$("#go").onclick=ask;
+$("#q").onkeydown=e=>{ if(e.key==="Enter") ask(); };
+boot();
+</script>
+</body>
+</html>

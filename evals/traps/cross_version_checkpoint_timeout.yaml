@@ -1,0 +1,21 @@
+id: cross_version_checkpoint_timeout
+failure_class: cross_version
+tenant: tenant_atlas
+query: "what is the default checkpoint_timeout_seconds in Atlas"
+expected_behaviour: answer_with_caveat
+reason: >
+  Two documents give different answers. durability.md shows 300; versions.md records
+  900 for Atlas 2.x and 300 for 3.x, and notes that an upgraded cluster keeps the old
+  value. Both chunks retrieve strongly. The failure mode is picking one number
+  silently — which is wrong for half the readers and unfalsifiable from the answer
+  alone, since the number quoted is genuinely a default of something.
+detect:
+  must_not_contain_confident_claim: false
+  must_contain_any:
+    - "2.x"
+    - "3.x"
+    - "version"
+    - "900"
+  acceptable_refusal_markers:
+    - "depends on"
+    - "differs"

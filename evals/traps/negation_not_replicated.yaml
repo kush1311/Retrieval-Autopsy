@@ -1,0 +1,20 @@
+id: negation_not_replicated
+failure_class: negation
+tenant: tenant_kelvin
+query: "which Kelvin settings are not replicated to replicas"
+expected_behaviour: answer_contains
+reason: >
+  The answer is in replication.md under "What is not replicated" — configuration is
+  per-node, and expiry is driven by the primary. The trap is the polarity word.
+  Embeddings barely move for `not`, so the chunk about what *is* replicated retrieves
+  just as strongly, and the plausible wrong answer is a fluent description of the
+  replication stream that answers the opposite question.
+detect:
+  must_not_contain_confident_claim: false
+  must_contain_any:
+    - "not replicated"
+    - "per-node"
+    - "max_memory_bytes"
+    - "configuration is also not"
+  must_not_contain:
+    - "all settings are replicated"

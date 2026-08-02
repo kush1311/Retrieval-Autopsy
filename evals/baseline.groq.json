@@ -1,0 +1,13 @@
+{
+  "known_failures": [
+    "silent_failure/phantom_binary_quantization_floor",
+    "silent_failure/phantom_snapshot_parallelism",
+    "silent_failure/superlative_fastest_metric"
+  ],
+  "recorded_against": {
+    "corpus": "seed@cab5c9bd",
+    "code": "src@cf77e90c",
+    "provider": "groq",
+    "embed_model": "BAAI/bge-small-en-v1.5"
+  }
+}

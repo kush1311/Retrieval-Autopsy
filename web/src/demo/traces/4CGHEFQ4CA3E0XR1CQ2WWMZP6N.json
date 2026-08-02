@@ -1,0 +1,909 @@
+{
+  "schema_version": "1.0.0",
+  "trace_id": "4CGHEFQ4CA3E0XR1CQ2WWMZP6N",
+  "created_at": "2026-07-26T08:43:25Z",
+  "query": "how do I disable append log rewrite throttling in Kelvin",
+  "rewritten_query": null,
+  "tenant_id": "tenant_kelvin",
+  "session_id": null,
+  "ablations": [],
+  "config_hash": "sha256:4f078518bb0bf672dbcf8f759e394f321ed4870c52eac050a9c86192169c1dd3",
+  "config": {
+    "lexical": {
+      "top_k": 20,
+      "b": 0.75,
+      "k1": 1.2
+    },
+    "semantic": {
+      "model_id": "text-embedding-3-small",
+      "top_k": 20
+    },
+    "fusion": {
+      "rrf_k": 60
+    },
+    "gate": {
+      "threshold": 0.42,
+      "reads": "dense_top1"
+    },
+    "rerank": {
+      "model_id": "claude-haiku-4-5-20251001",
+      "always": false,
+      "gray_zone_score": 0.6,
+      "gray_zone_margin": 0.1,
+      "top_n": 10
+    },
+    "expansion": {
+      "neighbours": 1
+    },
+    "generation": {
+      "model_id": "claude-sonnet-4-6",
+      "temperature": 0.0,
+      "max_context_chunks": 12,
+      "max_tokens": 700,
+      "discriminator_guard": true
+    },
+    "runtime": {
+      "provider": "offline",
+      "seed": 1729,
+      "cache_enabled": true
+    },
+    "rewrite_enabled": true
+  },
+  "versions": {
+    "corpus": "seed@cab5c9bd",
+    "embed_model": "sim:text-embedding-3-small",
+    "gen_model": "sim:claude-sonnet-4-6",
+    "rerank_model": "sim:claude-haiku-4-5-20251001",
+    "provider": "offline",
+    "code": "src@ce13172c"
+  },
+  "candidates": [
+    {
+      "chunk_id": "c_5af497179a2200c7",
+      "doc_id": "persistence.md",
+      "heading_path": [
+        "Kelvin persistence",
+        "Append log",
+        "Rewriting the log"
+      ],
+      "text": "The append log grows without bound, so Kelvin periodically rewrites it into the\nsmallest sequence of commands that reproduces the current dataset. A rewrite is\ntriggered when the log exceeds `append_rewrite_percent` of its size after the previous\nrewrite, and never below `append_rewrite_min_size`.\n\nA rewrite is a background operation and does not block writes. If it fails, Kelvin\nreports `KV-4021` and retries at the next trigger point.",
+      "ordinal": 2,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 2,
+      "lexical_score": 14.916904,
+      "semantic_rank": 1,
+      "semantic_score": 0.561569,
+      "fused_rank": 1,
+      "fused_score": 0.03252247,
+      "rerank_score": 61.8,
+      "final_rank": 1,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_6fa3c9cbf886fa17",
+      "doc_id": "persistence.md",
+      "heading_path": [
+        "Kelvin persistence",
+        "Append log"
+      ],
+      "text": "Every write is appended to an on-disk log before the client is acknowledged. The\n`append_fsync` setting controls how often that log is flushed:\n\n```yaml\nappend_log: true\nappend_fsync: every_second   # off | every_second | always\n```\n\n- `always` — flush before acknowledging each write. Durable to the last write, and\n  roughly an order of magnitude slower on spinning disks.\n- `every_second` — the default. A crash can lose up to one second of writes.\n- `off` — leave flushing to the operating system. Kelvin does not recommend this and\n  logs a warning at startup.",
+      "ordinal": 1,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 8,
+      "lexical_score": 4.38611,
+      "semantic_rank": 6,
+      "semantic_score": 0.373521,
+      "fused_rank": 6,
+      "fused_score": 0.0298574,
+      "rerank_score": 41.65,
+      "final_rank": 2,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_f48d2197a51c7d59",
+      "doc_id": "persistence.md",
+      "heading_path": [
+        "Kelvin persistence",
+        "Snapshots"
+      ],
+      "text": "A snapshot is a compact binary image of the whole dataset at a point in time.\n\n```yaml\nsnapshot_interval_seconds: 900\nsnapshot_dir: /var/lib/kelvin\nsnapshot_compression: lz4    # none | lz4 | zstd\n```\n\nSnapshots are written by a forked child process, so peak memory during a snapshot can\napproach twice the resident set on a write-heavy instance. Budget for that; the most\ncommon Kelvin outage is an out-of-memory kill during snapshotting on a host sized for\nsteady-state usage.",
+      "ordinal": 3,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 11,
+      "lexical_score": 0.783231,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": 17,
+      "fused_score": 0.01408451,
+      "rerank_score": null,
+      "final_rank": 3,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_848e0bce6457d3b1",
+      "doc_id": "errors.md",
+      "heading_path": [
+        "Kelvin error reference",
+        "Persistence faults",
+        "KV-4021 — append log rewrite failed"
+      ],
+      "text": "The background rewrite of the append log could not complete. Kelvin keeps serving\nreads and writes, but the append log continues to grow until the rewrite succeeds, so\nrecovery time after a restart grows with it.\n\nThe usual cause is insufficient free disk space: the rewrite writes a fresh log\nalongside the existing one and needs headroom equal to the live dataset before it can\nswap them. Check `kelvin-cli info persistence` for `last_rewrite_status`. Raising\n`append_rewrite_min_free_bytes` does not fix a full disk; it only makes Kelvin decline\nthe rewrite earlier and more clearly.\n\n```\nKV-4021 append log rewrite failed: needed 4.2GiB free, found 900MiB\n```",
+      "ordinal": 1,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 1,
+      "lexical_score": 16.22909,
+      "semantic_rank": 2,
+      "semantic_score": 0.540858,
+      "fused_rank": 2,
+      "fused_score": 0.03252247,
+      "rerank_score": 61.8,
+      "final_rank": 4,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_648592bcb065a344",
+      "doc_id": "errors.md",
+      "heading_path": [
+        "Kelvin error reference"
+      ],
+      "text": "Kelvin returns a machine-readable error code on every failed operation. Codes in the\n`KV-40xx` range are durability and persistence faults; `KV-41xx` covers cluster\nmembership; `KV-42xx` covers client protocol violations.",
+      "ordinal": 0,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 13,
+      "lexical_score": 0.726682,
+      "semantic_rank": 13,
+      "semantic_score": 0.081388,
+      "fused_rank": 12,
+      "fused_score": 0.02739726,
+      "rerank_score": null,
+      "final_rank": 5,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_d6ac4afb7257761a",
+      "doc_id": "errors.md",
+      "heading_path": [
+        "Kelvin error reference",
+        "Persistence faults",
+        "KV-4022 — snapshot write failed"
+      ],
+      "text": "A point-in-time snapshot could not be written to disk. Unlike `KV-4021`, this is\n**fatal for the snapshot only** — the append log is unaffected and remains a complete\nrecovery source. Kelvin will retry at the next `snapshot_interval_seconds` boundary.\n\nThe most common cause is a permissions problem on `snapshot_dir` after a container\nrestart under a different UID. Kelvin does not fall back to a temporary directory,\nbecause a snapshot written somewhere unexpected is worse than no snapshot at all.\n\n```\nKV-4022 snapshot write failed: open /var/lib/kelvin/snap.tmp: permission denied\n```",
+      "ordinal": 2,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 7,
+      "lexical_score": 6.227187,
+      "semantic_rank": 7,
+      "semantic_score": 0.369074,
+      "fused_rank": 7,
+      "fused_score": 0.02985075,
+      "rerank_score": 41.65,
+      "final_rank": 6,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_33cf6849fb3f518a",
+      "doc_id": "persistence.md",
+      "heading_path": [
+        "Kelvin persistence",
+        "Recovery precedence"
+      ],
+      "text": "On start, Kelvin loads the append log if `append_log` is enabled, because it is the\nmore complete of the two sources. The snapshot is used only when the append log is\nabsent or disabled. There is no merge step and no setting that changes this order.",
+      "ordinal": 4,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 3,
+      "lexical_score": 10.298418,
+      "semantic_rank": 3,
+      "semantic_score": 0.388637,
+      "fused_rank": 3,
+      "fused_score": 0.03174603,
+      "rerank_score": 41.65,
+      "final_rank": 7,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_d3b1ad0b5829c99b",
+      "doc_id": "persistence.md",
+      "heading_path": [
+        "Kelvin persistence"
+      ],
+      "text": "Kelvin offers two independent durability mechanisms. They can be enabled together,\nand most production deployments do exactly that: the append log bounds how much data\na crash can lose, and snapshots bound how long recovery takes.",
+      "ordinal": 0,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 4,
+      "lexical_score": 8.284844,
+      "semantic_rank": 4,
+      "semantic_score": 0.388637,
+      "fused_rank": 4,
+      "fused_score": 0.03125,
+      "rerank_score": 41.65,
+      "final_rank": 8,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_6896905b5b5c44a4",
+      "doc_id": "errors.md",
+      "heading_path": [
+        "Kelvin error reference",
+        "Persistence faults",
+        "KV-4023 — append log corrupted at offset"
+      ],
+      "text": "Kelvin found a truncated or malformed record while replaying the append log at\nstartup. By default it refuses to start, because silently discarding the tail of a\ndurability log turns a loud failure into quiet data loss.\n\nSet `append_truncate_on_corruption: true` to discard everything from the bad offset\nonward and start anyway. This is a deliberate data-loss switch and Kelvin logs the\nnumber of discarded records at `WARN` on every start while it is enabled.",
+      "ordinal": 3,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 5,
+      "lexical_score": 7.955412,
+      "semantic_rank": 5,
+      "semantic_score": 0.376299,
+      "fused_rank": 5,
+      "fused_score": 0.03076923,
+      "rerank_score": 41.65,
+      "final_rank": 9,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_d39ca40ac5f0da61",
+      "doc_id": "errors.md",
+      "heading_path": [
+        "Kelvin error reference",
+        "Cluster faults",
+        "KV-4101 — replica handshake rejected"
+      ],
+      "text": "A replica presented a `replication_id` that does not match the primary's. This\nhappens after a primary is restored from a snapshot: the restored node has a new\nreplication history and existing replicas cannot continue streaming from it. Replicas\nmust perform a full resynchronisation.",
+      "ordinal": 4,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": 10,
+      "in_context": true,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_385867b648e548e6",
+      "doc_id": "reference/throttling.md",
+      "heading_path": [
+        "Kelvin throttling",
+        "Overview"
+      ],
+      "text": "Throttling is the Kelvin subsystem responsible for pacing client requests. It runs continuously in the background and is governed by a replica that determines how much work it may do per cycle. Each cycle selects the oldest eligible request and processes it to completion before considering the next, so a single oversized request can delay everything queued behind it.\n\nThrottling never blocks foreground traffic. If it cannot keep up, the backlog grows and read amplification rises, but writes continue to be accepted at full rate.",
+      "ordinal": 0,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 6,
+      "lexical_score": 6.514565,
+      "semantic_rank": 9,
+      "semantic_score": 0.248508,
+      "fused_rank": 8,
+      "fused_score": 0.02964427,
+      "rerank_score": 28.05,
+      "final_rank": 11,
+      "in_context": true,
+      "inclusion_reason": "fused_top_k",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_41494e34a8ea7705",
+      "doc_id": "reference/throttling.md",
+      "heading_path": [
+        "Kelvin throttling",
+        "Configuration",
+        "`klv_throttling_interval_seconds`"
+      ],
+      "text": "The default value of `klv_throttling_interval_seconds` is 43955. It bounds pacing client requests on a single node, expressed in seconds. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": 12,
+      "in_context": true,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": null
+    },
+    {
+      "chunk_id": "c_962d756fa6ac10e1",
+      "doc_id": "reference/federation.md",
+      "heading_path": [
+        "Kelvin federation",
+        "Overview"
+      ],
+      "text": "Federation is the Kelvin subsystem responsible for forwarding queries to peers. It runs continuously in the background and is governed by a disable that determines how much work it may do per cycle. Each cycle selects the oldest eligible query and processes it to completion before considering the next, so a single oversized query can delay everything queued behind it.\n\nFederation never blocks foreground traffic. If it cannot keep up, the backlog grows and read amplification rises, but writes continue to be accepted at full rate.",
+      "ordinal": 0,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 9,
+      "lexical_score": 4.296794,
+      "semantic_rank": 10,
+      "semantic_score": 0.243005,
+      "fused_rank": 9,
+      "fused_score": 0.02877847,
+      "rerank_score": 27.43,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_a83f7518907da4d2",
+      "doc_id": "memory.md",
+      "heading_path": [
+        "Kelvin memory limits and eviction",
+        "Throttling"
+      ],
+      "text": "Kelvin does not throttle writes as it approaches `max_memory_bytes`. There is no\ngradual back-pressure mode and no setting that introduces one. Behaviour at the limit\nis a step change governed entirely by `max_memory_policy`.",
+      "ordinal": 2,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 12,
+      "lexical_score": 0.744276,
+      "semantic_rank": 8,
+      "semantic_score": 0.26364,
+      "fused_rank": 10,
+      "fused_score": 0.02859477,
+      "rerank_score": 28.05,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "rerank_promoted",
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_a4000b84605cfe05",
+      "doc_id": "reference/replication.md",
+      "heading_path": [
+        "Kelvin replication",
+        "Overview"
+      ],
+      "text": "Replication is the Kelvin subsystem responsible for streaming changes to followers. It runs continuously in the background and is governed by a disable that determines how much work it may do per cycle. Each cycle selects the oldest eligible change and processes it to completion before considering the next, so a single oversized change can delay everything queued behind it.\n\nReplication never blocks foreground traffic. If it cannot keep up, the backlog grows and read amplification rises, but writes continue to be accepted at full rate.",
+      "ordinal": 0,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 10,
+      "lexical_score": 4.296794,
+      "semantic_rank": 11,
+      "semantic_score": 0.242612,
+      "fused_rank": 11,
+      "fused_score": 0.02837022,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_32fa470fc24d6c07",
+      "doc_id": "replication.md",
+      "heading_path": [
+        "Kelvin replication",
+        "Failover"
+      ],
+      "text": "Kelvin does not perform automatic failover. Promotion is an explicit operation:\n\n```\nkelvin-cli replica promote --confirm\n```\n\nPromotion assigns the node a new `replication_id`. Every other replica of the old\nprimary must fully resynchronise against the new one; they cannot continue streaming,\nand attempting to do so produces `KV-4101`.",
+      "ordinal": 2,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 14,
+      "lexical_score": 0.643075,
+      "semantic_rank": 14,
+      "semantic_score": 0.079125,
+      "fused_rank": 13,
+      "fused_score": 0.02702703,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_4975185f976bb64a",
+      "doc_id": "memory.md",
+      "heading_path": [
+        "Kelvin memory limits and eviction",
+        "Setting a limit"
+      ],
+      "text": "`max_memory_bytes` caps the memory Kelvin uses for stored data. It excludes\nreplication buffers, client output buffers, and allocator fragmentation, so the\nprocess resident set will always be somewhat larger than the configured value. A\ncommon sizing mistake is to set `max_memory_bytes` to the container limit; leave at\nleast 25% headroom.\n\n```yaml\nmax_memory_bytes: 6442450944   # 6 GiB\nmax_memory_policy: evict_lru\n```",
+      "ordinal": 0,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 15,
+      "lexical_score": 0.599204,
+      "semantic_rank": 15,
+      "semantic_score": 0.07832,
+      "fused_rank": 14,
+      "fused_score": 0.02666667,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_02a676d5a7546656",
+      "doc_id": "reference/eviction.md",
+      "heading_path": [
+        "Kelvin eviction",
+        "Configuration",
+        "`klv_eviction_max_concurrency`"
+      ],
+      "text": "The default value of `klv_eviction_max_concurrency` is 93619. It bounds releasing memory on a single node, expressed in concurrency. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 3,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 16,
+      "lexical_score": 0.59342,
+      "semantic_rank": 17,
+      "semantic_score": 0.078167,
+      "fused_rank": 15,
+      "fused_score": 0.02614491,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_07df713f27b1e90f",
+      "doc_id": "reference/eviction.md",
+      "heading_path": [
+        "Kelvin eviction",
+        "Configuration",
+        "`klv_eviction_threshold_bytes`"
+      ],
+      "text": "The default value of `klv_eviction_threshold_bytes` is 7875. It bounds releasing memory on a single node, expressed in bytes. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 2,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 17,
+      "lexical_score": 0.59342,
+      "semantic_rank": 18,
+      "semantic_score": 0.078167,
+      "fused_rank": 16,
+      "fused_score": 0.02580753,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_4791161f9edf63a2",
+      "doc_id": "support-policy.md",
+      "heading_path": [
+        "Support and release policy",
+        "Data handling during support"
+      ],
+      "text": "Diagnostic bundles may contain configuration, logs, and schema. They do not contain\nstored records. Attaching a bundle from one environment to a ticket raised for another\nis the most common way customer data ends up somewhere it should not be; check the\nenvironment before attaching.",
+      "ordinal": 4,
+      "tenant_id": "tenant_global",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 12,
+      "semantic_score": 0.136798,
+      "fused_rank": 18,
+      "fused_score": 0.01388889,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_01452cc3e13e573e",
+      "doc_id": "reference/ingestion.md",
+      "heading_path": [
+        "Kelvin ingestion",
+        "Configuration",
+        "`klv_ingestion_max_concurrency`"
+      ],
+      "text": "The default value of `klv_ingestion_max_concurrency` is 47497. It bounds accepting incoming batches on a single node, expressed in concurrency. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 3,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 16,
+      "semantic_score": 0.078167,
+      "fused_rank": 19,
+      "fused_score": 0.01315789,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_61d74d384a9c5971",
+      "doc_id": "reference/eviction.md",
+      "heading_path": [
+        "Kelvin eviction",
+        "Configuration",
+        "`klv_eviction_interval_seconds`"
+      ],
+      "text": "The default value of `klv_eviction_interval_seconds` is 76360. It bounds releasing memory on a single node, expressed in seconds. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 18,
+      "lexical_score": 0.59342,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": 20,
+      "fused_score": 0.01282051,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_1410c962c3e0a7fa",
+      "doc_id": "reference/prefetching.md",
+      "heading_path": [
+        "Kelvin prefetching",
+        "Configuration",
+        "`klv_prefetching_interval_seconds`"
+      ],
+      "text": "The default value of `klv_prefetching_interval_seconds` is 1125. It bounds reading ahead of demand on a single node, expressed in seconds. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 19,
+      "semantic_score": 0.078167,
+      "fused_rank": 21,
+      "fused_score": 0.01265823,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_66c1d2cd5889549c",
+      "doc_id": "reference/compaction.md",
+      "heading_path": [
+        "Kelvin compaction",
+        "Configuration",
+        "`klv_compaction_max_concurrency`"
+      ],
+      "text": "The default value of `klv_compaction_max_concurrency` is 54844. It bounds merging segments on a single node, expressed in concurrency. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 3,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 19,
+      "lexical_score": 0.59342,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": 22,
+      "fused_score": 0.01265823,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_1cd10550f29bfc17",
+      "doc_id": "reference/hydration.md",
+      "heading_path": [
+        "Kelvin hydration",
+        "Configuration",
+        "`klv_hydration_threshold_bytes`"
+      ],
+      "text": "The default value of `klv_hydration_threshold_bytes` is 52549. It bounds warming caches after a restart on a single node, expressed in bytes. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 2,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": 20,
+      "semantic_score": 0.078167,
+      "fused_rank": 23,
+      "fused_score": 0.0125,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_7c39bc9e0a863568",
+      "doc_id": "reference/compaction.md",
+      "heading_path": [
+        "Kelvin compaction",
+        "Configuration",
+        "`klv_compaction_interval_seconds`"
+      ],
+      "text": "The default value of `klv_compaction_interval_seconds` is 86687. It bounds merging segments on a single node, expressed in seconds. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": 20,
+      "lexical_score": 0.59342,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": 24,
+      "fused_score": 0.0125,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": null,
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_07b020a14e3bac7b",
+      "doc_id": "reference/replication.md",
+      "heading_path": [
+        "Kelvin replication",
+        "Configuration",
+        "`klv_replication_interval_seconds`"
+      ],
+      "text": "The default value of `klv_replication_interval_seconds` is 76257. It bounds streaming changes to followers on a single node, expressed in seconds. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_8f1fa32f45ed888f",
+      "doc_id": "memory.md",
+      "heading_path": [
+        "Kelvin memory limits and eviction",
+        "Eviction policies"
+      ],
+      "text": "When the limit is reached, `max_memory_policy` decides what happens next:\n\n| Policy | Behaviour |\n|---|---|\n| `reject_writes` | Writes fail with `KV-4210`; reads continue. The default. |\n| `evict_lru` | Evict the least recently used key, across all keys. |\n| `evict_lru_expiring` | Evict least recently used, but only among keys that carry an expiry. |\n| `evict_random` | Evict an arbitrary key. Cheapest, and appropriate only for pure caches. |\n\n`evict_lru` uses sampled approximate LRU rather than a strict global ordering. The\nsample size is `eviction_sample_size`, default 5. Raising it improves eviction quality\nand costs CPU on every eviction; values above 10 rarely help.",
+      "ordinal": 1,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_c25b832285a5714e",
+      "doc_id": "reference/federation.md",
+      "heading_path": [
+        "Kelvin federation",
+        "Configuration",
+        "`klv_federation_interval_seconds`"
+      ],
+      "text": "The default value of `klv_federation_interval_seconds` is 6268. It bounds forwarding queries to peers on a single node, expressed in seconds. Kelvin reads this value once at startup and does not reload it on a configuration change, so a value edited in place takes effect only after a restart. Setting it below the documented minimum is accepted at startup and clamped silently, which is a common source of configurations that appear to have no effect.",
+      "ordinal": 1,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    },
+    {
+      "chunk_id": "c_d5c40df0bbe47d2d",
+      "doc_id": "memory.md",
+      "heading_path": [
+        "Kelvin memory limits and eviction",
+        "Expiry"
+      ],
+      "text": "Keys with a TTL are removed by two mechanisms working together: a lazy check when the\nkey is next accessed, and a background sampler that runs `expiry_scan_per_second`\ntimes a second. Neither guarantees prompt removal, so a key that has logically expired\nmay still occupy memory. Do not rely on TTL alone to keep the dataset under\n`max_memory_bytes`.",
+      "ordinal": 3,
+      "tenant_id": "tenant_kelvin",
+      "lexical_rank": null,
+      "lexical_score": null,
+      "semantic_rank": null,
+      "semantic_score": null,
+      "fused_rank": null,
+      "fused_score": null,
+      "rerank_score": null,
+      "final_rank": null,
+      "in_context": false,
+      "inclusion_reason": "neighbor_expansion",
+      "rejected_by": "top_k"
+    }
+  ],
+  "stages": [
+    {
+      "name": "rewrite",
+      "ms": 0.019,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": true,
+      "skip_reason": "no conversation history, query is already standalone",
+      "error": null,
+      "detail": {}
+    },
+    {
+      "name": "embed",
+      "ms": 0.109,
+      "tokens_in": 14,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": "miss",
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "model": "offline-concept-86d01716",
+        "kind": "concept"
+      }
+    },
+    {
+      "name": "retrieve_dense",
+      "ms": 1.331,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "top_k": 20,
+        "returned": 20,
+        "scope": "tenant_kelvin + tenant_global"
+      }
+    },
+    {
+      "name": "retrieve_sparse",
+      "ms": 0.857,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "top_k": 20,
+        "returned": 20,
+        "k1": 1.2,
+        "b": 0.75
+      }
+    },
+    {
+      "name": "fuse",
+      "ms": 0.217,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "mode": "rrf",
+        "rrf_k": 60,
+        "candidates": 24
+      }
+    },
+    {
+      "name": "gate",
+      "ms": 0.044,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "reads": "dense_top1",
+        "value": 0.561569,
+        "threshold": 0.42,
+        "margin": 0.020711,
+        "passed": true
+      }
+    },
+    {
+      "name": "rerank",
+      "ms": 3.321,
+      "tokens_in": 1132,
+      "tokens_out": 40,
+      "cost_usd": 0.0,
+      "cache": "miss",
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "scored": 10,
+        "shortlist": 10,
+        "promoted": [
+          "c_a83f7518907da4d2"
+        ],
+        "trigger": "gray_zone"
+      }
+    },
+    {
+      "name": "expand",
+      "ms": 0.257,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0,
+      "cache": null,
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "neighbours": 1,
+        "added": 6
+      }
+    },
+    {
+      "name": "generate",
+      "ms": 5.151,
+      "tokens_in": 1300,
+      "tokens_out": 38,
+      "cost_usd": 0.0,
+      "cache": "miss",
+      "skipped": false,
+      "skip_reason": null,
+      "error": null,
+      "detail": {
+        "sources": 12,
+        "status": "grounded",
+        "unsupported_spans": 0,
+        "temperature": 0.0
+      }
+    }
+  ],
+  "answer": {
+    "text": "Kelvin keeps serving reads and writes, but the append log continues to grow until the rewrite succeeds, so recovery time after a restart grows with it. [4]",
+    "status": "grounded",
+    "spans": [
+      {
+        "start": 0,
+        "end": 155,
+        "chunk_ids": [
+          "c_848e0bce6457d3b1"
+        ],
+        "supported": true
+      }
+    ],
+    "citations": [
+      "c_848e0bce6457d3b1"
+    ],
+    "refusal_reason": null,
+    "hedged": false
+  },
+  "totals": {
+    "ms": 11.306,
+    "cost_usd": 0.0,
+    "llm_calls": 2,
+    "tokens_in": 2446,
+    "tokens_out": 78
+  }
+}

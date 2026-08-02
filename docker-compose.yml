@@ -1,0 +1,48 @@
+# `docker compose up` gives a working demo at localhost:3000 with no API key.
+#
+# The web service builds with VITE_DEMO_ONLY=1, so it replays pre-recorded traces from
+# web/src/demo/traces and never calls the API. The api service is there for the live
+# inspector; the demo does not depend on it being healthy.
+#
+# Qdrant is opt-in via the `qdrant` profile. The default vector backend is the local
+# one, which needs no daemon and is what every committed report was produced with.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    environment:
+      AUTOPSY_PROVIDER: ${AUTOPSY_PROVIDER:-offline}
+      AUTOPSY_VECTOR_BACKEND: ${AUTOPSY_VECTOR_BACKEND:-local}
+      AUTOPSY_CORS_ORIGINS: http://localhost:3000
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+
+  web:
+    build:
+      context: ./web
+      dockerfile: ../docker/web.Dockerfile
+      args:
+        VITE_DEMO_ONLY: "1"
+    ports:
+      - "3000:80"
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.2
+    profiles: ["qdrant"]
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant:/qdrant/storage
+
+volumes:
+  qdrant:

@@ -1,0 +1,52 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+
+# fetched source documents — see corpus/manifest.yaml for provenance
+corpus/raw/
+# built indexes are derived artifacts
+corpus/index/
+
+# traces are large and regenerable; the curated demo set is committed separately
+reports/traces/
+!reports/traces/.gitkeep
+
+web/node_modules/
+web/dist/
+corpus/generated/
+
+# ── Secrets ──────────────────────────────────────────────────────────────────────
+#
+# `.env` plus every conventional variant, because the ones that leak are rarely the one
+# you remembered to ignore: `.env.local` from a framework habit, `.env.backup` from a
+# five-second "let me just save this first", `.env.groq` from testing a second key.
+#
+# `.env.example` is force-included after the wildcard — it is the template, it must be
+# committed, and it must never contain a real value. There is a test for that.
+.env
+.env.*
+!.env.example
+
+# API keys have also escaped through shell history and editor session files.
+*.env
+.envrc
+.direnv/
+
+# ── Archives ─────────────────────────────────────────────────────────────────────
+#
+# A `.7z` of the project directory was sitting next to this repo, and an archive taken
+# before `.env` was cleaned carries the old keys inside it where no secret scanner will
+# look. Never commit a snapshot of the working tree.
+*.7z
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# Editor and repair backups. Never useful to a reader, and an encoding-repair backup in
+# particular holds the *corrupted* copy — committing one would reintroduce the problem it
+# was taken to guard against.
+*.bak
+*.orig

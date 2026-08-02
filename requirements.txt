@@ -1,0 +1,31 @@
+# Runtime dependencies for the keyless default path.
+#
+# `pyproject.toml` is the source of truth — this file exists because `pip install -r
+# requirements.txt` is what most people try first, and it should work.
+#
+#   pip install -r requirements.txt          <- everything below
+#   pip install -e ".[all]"                  <- identical, via pyproject
+#
+# Lower bounds, not pins. The versions in the trailing comments are what this project was
+# actually developed and tested against on Python 3.12.10 — if something breaks on a newer
+# release, those are the numbers to fall back to.
+
+numpy>=1.26                 # tested 2.5.1
+pydantic>=2.6               # tested 2.13.4
+pyyaml>=6.0                 # tested 6.0.3
+rank_bm25>=0.2.2            # tested 0.2.2
+fastapi>=0.110              # tested 0.140.0
+uvicorn[standard]>=0.29     # tested 0.51.0  — [standard] brings the websocket support
+httpx>=0.27                 # tested 0.28.1
+
+# Real local embeddings: BAAI/bge-small-en-v1.5 via ONNX. No key, no GPU. Downloads
+# ~130MB the first time it runs, then works offline forever.
+#
+# Strictly optional: AUTOPSY_EMBEDDER=concept needs none of this. But it is required by
+# the default `groq` profile, and it is what makes the 3D embedding view show real
+# geometry instead of a simulation, so it belongs in the default install.
+fastembed>=0.3              # tested 0.8.0
+
+# Embedded Qdrant — a real vector database with no Docker daemon, using qdrant-client's
+# local mode. Optional; AUTOPSY_VECTOR_BACKEND=local is numpy in-process and needs nothing.
+qdrant-client>=1.9          # tested 1.18.0

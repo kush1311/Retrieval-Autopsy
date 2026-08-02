@@ -1,0 +1,34 @@
+[
+  {
+    "query": "what does KLV-4021 mean",
+    "tenant": "tenant_kelvin",
+    "baseline": "5F9QDB4D8QXYNNNXBMX1419GFY",
+    "variants": {
+      "no_lexical": "5DEP74VP6RTNGQZ39X66WV8VMH"
+    }
+  },
+  {
+    "query": "how do I disable append log rewrite throttling in Kelvin",
+    "tenant": "tenant_kelvin",
+    "baseline": "4CGHEFQ4CA3E0XR1CQ2WWMZP6N",
+    "variants": {
+      "no_gate": "5E32RTKVJ179D12TCZZRDQX1P2"
+    }
+  },
+  {
+    "query": "what is the default checkpoint_timeout_seconds in Atlas",
+    "tenant": "tenant_atlas",
+    "baseline": "7G84F4674EAP96M0Y4K2B6S583",
+    "variants": {
+      "top_k_1": "6ESPJBTFV7NMQFSHSZAQVTH5AS"
+    }
+  },
+  {
+    "query": "which Vela distance metric is the fastest",
+    "tenant": "tenant_vela",
+    "baseline": "0364JVYCN7392Z08H6Z5FWBMGZ",
+    "variants": {
+      "no_rerank": "1QEHQ7MXYYXX9CPJG3S28QD7H4"
+    }
+  }
+]
