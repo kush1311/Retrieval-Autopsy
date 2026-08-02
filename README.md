@@ -172,8 +172,8 @@ the 20-second recording.
 money. Requires Python 3.12+ and nothing else.
 
 ```bash
-git clone https://github.com/kushaldesai/retrieval-autopsy.git
-cd retrieval-autopsy
+git clone https://github.com/kush1311/Retrieval-Autopsy.git
+cd Retrieval-Autopsy
 
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\Activate.ps1
