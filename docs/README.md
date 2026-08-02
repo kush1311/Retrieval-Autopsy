@@ -12,7 +12,14 @@ Recordings and long-form documentation for [Retrieval Autopsy](../README.md).
 
 All three recordings come from one capture of the live inspector at `teach` pace, running
 `provider=groq` against the real 449-chunk index. Nothing is mocked or staged. Browser
-chrome and the taskbar are cropped out — the crop is `crop=1280:576:0:104`.
+chrome and the taskbar are cropped out — the crop is `crop=1280:576:0:104`, which also keeps
+a bookmarks bar and a system tray out of a public repository.
+
+Encoded at 12fps, 960px, a 240-colour palette with per-frame difference statistics, and
+`sierra2_4a` error diffusion. Ordered (`bayer`) dithering is roughly a third smaller and
+was tried first, but it leaves visible speckle in body text and cross-hatching on the soft
+gradients behind the point cloud. At 960px the GIFs are displayed at native resolution, so
+the browser never rescales them.
 
 Committed rather than linked to an external host: an image host that expires takes the
 README's only visual with it, and a repository that cannot show what it built is back to

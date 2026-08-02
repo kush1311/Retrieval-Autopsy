@@ -57,3 +57,8 @@ corpus/generated/
 docs/*.mp4
 docs/*.mkv
 docs/*.mov
+
+# Full-quality per-tab exports, cut for use outside this repository. The three GIFs the
+# README embeds (space/rag/eval) are committed and size-tuned; these are the unconstrained
+# versions and are several times larger, so they stay local.
+docs/video*.gif
