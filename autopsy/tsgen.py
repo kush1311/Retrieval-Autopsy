@@ -16,6 +16,8 @@ them since they were written. One generated artifact, both jobs, no duplication.
 
 from __future__ import annotations
 
+import json
+import re
 import types as pytypes
 from enum import Enum
 from typing import Any, Literal, Union, get_args, get_origin
@@ -130,7 +132,8 @@ def _model_block(model: type[BaseModel]) -> str:
     for name, field in model.model_fields.items():
         expr = _zod(field.annotation)
         if not field.is_required():
-            expr += f".default({_default(field.get_default(call_default_factory=True))})"
+            default = field.get_default(call_default_factory=True)
+            expr += f".default({_default(default, where=f'{model.__name__}.{name}')})"
         lines.append(f"  {name}: {expr},")
     lines.append("});")
     lines.append(
@@ -139,22 +142,64 @@ def _model_block(model: type[BaseModel]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _default(value: Any) -> str:
+def _default(value: Any, *, where: str = "?") -> str:
+    """Render a Python default as a TypeScript literal.
+
+    ``where`` is the ``Model.field`` being rendered, and exists only for the error at the
+    bottom.
+
+    That error replaces a ``return "undefined"`` catch-all, which is worth explaining
+    because it is the more interesting half of this function. Any default whose type was
+    not in the list above — a nested model, a tuple, a datetime — became the literal
+    string ``undefined``, producing ``SomeSchema.default(undefined)``. Zod rejects that:
+
+        error TS2769: No overload matches this call.
+          Argument of type 'undefined' is not assignable to parameter of type '{...}'
+
+    `totals: Totals = Field(default_factory=Totals)` hit it. The generator ran clean, wrote
+    the file, and `make schema` reported success — there is no Node in this project's
+    toolchain, so nothing compiled the output until CI did, on a frontend that had never
+    been built. A generator that emits invalid code for an unhandled input and calls it a
+    success is worse than one that refuses, so this one refuses.
+    """
     if value is None:
         return "null"
     if isinstance(value, bool):
         return "true" if value else "false"
+    if isinstance(value, Enum):
+        return f'"{value.value}"'
     if isinstance(value, (int, float)):
         return str(value)
     if isinstance(value, str):
-        return f'"{value}"'
-    if isinstance(value, list):
-        return "[]"
+        return json.dumps(value)
+    # Containers render their real contents. `[]` and `{}` were emitted unconditionally
+    # before, so a non-empty default silently became an empty one — the schema would then
+    # disagree with the Python model about what the default *is*, which is the same class
+    # of bug as the one above but quieter.
+    if isinstance(value, (list, tuple)):
+        return "[" + ", ".join(_default(v, where=where) for v in value) + "]"
+    if isinstance(value, BaseModel):
+        value = value.model_dump(mode="json")
     if isinstance(value, dict):
-        return "{}"
-    if isinstance(value, Enum):
-        return f'"{value.value}"'
-    return "undefined"
+        if not value:
+            return "{}"
+        body = ", ".join(
+            f"{_key(k)}: {_default(v, where=where)}" for k, v in value.items()
+        )
+        return "{" + body + "}"
+    raise TypeError(
+        f"tsgen cannot render the default for {where}: {value!r} ({type(value).__name__}).\n"
+        "Add a case to _default(). Emitting `undefined` instead would produce Zod that "
+        "does not compile, and nothing in the Python toolchain would notice."
+    )
+
+
+_IDENT = re.compile(r"^[A-Za-z_$][A-Za-z0-9_$]*$")
+
+
+def _key(name: str) -> str:
+    """Quote an object key unless it is a bare JS identifier."""
+    return name if _IDENT.match(name) else json.dumps(name)
 
 
 def generate() -> str:

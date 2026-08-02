@@ -402,14 +402,20 @@ def cmd_calibrate_gate(args: argparse.Namespace) -> int:
 def cmd_schema(args: argparse.Namespace) -> int:
     from autopsy.tsgen import generate as generate_ts
 
+    # newline="\n" on both, because CI enforces `make schema && git diff --exit-code`.
+    # Without it, Python's text mode translates \n to \r\n on Windows while .gitattributes
+    # stores LF, so a Windows contributor sees the entire file as modified after every
+    # regeneration and the sync check becomes noise they learn to ignore.
     json_path = Path(args.out)
     json_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(json.dumps(export_json_schema(), indent=2) + "\n", encoding="utf-8")
+    json_path.write_text(
+        json.dumps(export_json_schema(), indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
     print(f"  wrote {json_path.relative_to(REPO_ROOT)}")
 
     ts_path = Path(args.ts)
     ts_path.parent.mkdir(parents=True, exist_ok=True)
-    ts_path.write_text(generate_ts(), encoding="utf-8")
+    ts_path.write_text(generate_ts(), encoding="utf-8", newline="\n")
     print(f"  wrote {ts_path.relative_to(REPO_ROOT)}")
     return 0
 

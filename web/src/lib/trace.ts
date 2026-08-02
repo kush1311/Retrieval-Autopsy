@@ -98,7 +98,7 @@ export const TraceSchema = z.object({
   candidates: z.array(CandidateSchema).default([]),
   stages: z.array(StageRecordSchema).default([]),
   answer: AnswerSchema,
-  totals: TotalsSchema.default(undefined),
+  totals: TotalsSchema.default({ms: 0.0, cost_usd: 0.0, llm_calls: 0, tokens_in: 0, tokens_out: 0}),
 });
 export type Trace = z.infer<typeof TraceSchema>;
 
