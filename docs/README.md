@@ -15,11 +15,18 @@ All three recordings come from one capture of the live inspector at `teach` pace
 chrome and the taskbar are cropped out — the crop is `crop=1280:576:0:104`, which also keeps
 a bookmarks bar and a system tray out of a public repository.
 
-Encoded at 12fps, 960px, a 240-colour palette with per-frame difference statistics, and
-`sierra2_4a` error diffusion. Ordered (`bayer`) dithering is roughly a third smaller and
-was tried first, but it leaves visible speckle in body text and cross-hatching on the soft
-gradients behind the point cloud. At 960px the GIFs are displayed at native resolution, so
-the browser never rescales them.
+Encoded at **15fps, native 1280px, the full 256-colour table, and `sierra2_4a` error
+diffusion** — no `scale` filter at all.
+
+Two cheaper settings were tried and rejected. Ordered (`bayer`) dithering at 144 colours is
+about a third the size but leaves visible speckle through body text and cross-hatches the
+soft gradients behind the point cloud. Downscaling to 960px then cost roughly as much
+sharpness again as the palette did. The README displays these at `width="960"`, so the
+1280px source is a 1.33x oversample and stays crisp on high-DPI screens.
+
+The result is ~14 MB across the three, which is permanent weight in every clone. That is a
+deliberate trade: these recordings are the only way a reader sees the thing this repository
+is about, and a grainy one undersells it.
 
 Committed rather than linked to an external host: an image host that expires takes the
 README's only visual with it, and a repository that cannot show what it built is back to
