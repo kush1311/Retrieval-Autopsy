@@ -11,7 +11,6 @@
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/licence-MIT-blue"></a>
   <a href="#installation"><img alt="No API key required" src="https://img.shields.io/badge/API%20key-not%20required-brightgreen"></a>
   <a href="#tests"><img alt="230 tests collected" src="https://img.shields.io/badge/tests-229%20passed%20%C2%B7%201%20skipped-brightgreen"></a>
-  <a href="docs/FINDINGS.md"><img alt="Findings" src="https://img.shields.io/badge/findings-documented-informational"></a>
 </p>
 
 <p align="center">
@@ -114,7 +113,7 @@ Whether a given query actually breaks depends on the embedder. Under the free `f
 default, `KLV-4021` is retrieved at rank 1 by **both** legs, so dropping the lexical leg
 changes nothing for it. The aggregate cost is real but small — 3 to 19 percentage points of
 gold-chunk retention depending on context width, measured in
-[docs/FINDINGS.md](docs/FINDINGS.md#the-finding).
+[reports/context-sensitivity.md](reports/context-sensitivity.md).
 
 ```bash
 python -m autopsy.cli ablate --core -n 25     # the study, not one anecdote
@@ -194,17 +193,13 @@ api/            FastAPI app and the single-file inspector UI
 web/            React frontend (optional; needs Node)
 reports/        generated measurements, committed
 tests/          230 collected by pytest, including negative controls
-docs/           findings, engineering notes, screenshots
+docs/           screenshots and recordings used by this README
 ```
-
-Full annotated map in [docs/ENGINEERING.md](docs/ENGINEERING.md#repo-map).
 
 ## Documentation
 
 | | |
 |---|---|
-| [**docs/FINDINGS.md**](docs/FINDINGS.md) | What was measured: the ablation table, the context-width curve, the suites, judge calibration |
-| [**docs/ENGINEERING.md**](docs/ENGINEERING.md) | Design decisions, **what is and isn't verified**, deliberate deviations from spec |
 | [**reports/**](reports/) | The generated artifacts every number is drawn from |
 
 <a name="tests"></a>
