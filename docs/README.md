@@ -7,6 +7,8 @@ Recordings and long-form documentation for [Retrieval Autopsy](../README.md).
 | `space.gif` | SPACE | a query crossing the embedding space — both retrieval legs firing, the surviving chunks reaching the model, the answer returning |
 | `rag.gif` | RAG | nine pipeline stages executing with real timings, the lexical/semantic competition, candidates struck through as they lose |
 | `eval.gif` | EVAL | ten trap probes plotted where their questions land, coloured by outcome as the suite runs |
+| `FINDINGS.md` | — | what was measured: the ablation table, the context-width curve, the suites, judge calibration |
+| `ENGINEERING.md` | — | design decisions, what is and isn't verified, deliberate deviations from spec |
 
 All three recordings come from one capture of the live inspector at `teach` pace, running
 `provider=groq` against the real 449-chunk index. Nothing is mocked or staged. Browser
